@@ -5,15 +5,32 @@ import { requireAdmin } from '@/lib/auth'
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const category = searchParams.get('categoria')
-  const sort = searchParams.get('sort')
+  const sort = searchParams.get('sort') || 'populares'
 
   let query = supabaseAdmin
     .from('products')
     .select('*, categories(name, slug)')
-    .order('whatsapp_clicks', { ascending: false })
 
   if (category) {
-    query = query.eq('categories.slug', category)
+    const { data: cat } = await supabaseAdmin
+      .from('categories')
+      .select('id')
+      .eq('slug', category)
+      .single()
+
+    if (cat) {
+      query = query.eq('category_id', cat.id)
+    }
+  }
+
+  if (sort === 'precio-asc') {
+    query = query.order('price', { ascending: true })
+  } else if (sort === 'precio-desc') {
+    query = query.order('price', { ascending: false })
+  } else if (sort === 'nuevos') {
+    query = query.order('created_at', { ascending: false })
+  } else {
+    query = query.order('whatsapp_clicks', { ascending: false })
   }
 
   const { data: products, error } = await query

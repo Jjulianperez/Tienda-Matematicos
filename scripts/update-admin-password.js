@@ -1,6 +1,3 @@
-// Script para crear el admin en Supabase
-// Ejecutar: node scripts/create-admin.js <email> <password>
-
 const { createClient } = require('@supabase/supabase-js')
 const bcrypt = require('bcryptjs')
 const fs = require('fs')
@@ -34,7 +31,8 @@ async function main() {
 
   const { data, error } = await supabaseAdmin
     .from('admins')
-    .insert({ email, password_hash })
+    .update({ password_hash })
+    .eq('email', email)
     .select()
     .single()
 
@@ -43,7 +41,7 @@ async function main() {
     return
   }
 
-  console.log(`Admin creado: ${data.email}`)
+  console.log(`Contraseña actualizada para: ${data.email}`)
 }
 
 main()
