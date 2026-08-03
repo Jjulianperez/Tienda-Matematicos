@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutlinePhoto, HiOutlineCog6Tooth, HiOutlineInformationCircle } from 'react-icons/hi2'
 import AdminLayout from '@/components/admin/AdminLayout'
+import { Modal, Alert, Confirm, useToast } from '@/components/Modal'
 
-function ProductForm({ product, categories, onSave, onCancel }) {
+function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess }) {
   const [tab, setTab] = useState('info')
   const [form, setForm] = useState({
     name: product?.name || '',
@@ -84,8 +85,10 @@ function ProductForm({ product, categories, onSave, onCancel }) {
         throw new Error(data.error || 'Error al guardar')
       }
 
+      onSuccess?.(product ? 'Producto actualizado correctamente' : 'Producto creado correctamente')
       onSave()
     } catch (err) {
+      onError?.(err.message)
       setError(err.message)
     } finally {
       setSaving(false)
@@ -270,7 +273,9 @@ export default function AdminProductos() {
   const [editing, setEditing] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [search, setSearch] = useState('')
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, product: null })
   const router = useRouter()
+  const { show: showToast } = useToast()
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -290,23 +295,37 @@ export default function AdminProductos() {
       .catch(() => {})
   }, [router])
 
-  const handleDelete = async (id) => {
-    if (!confirm('¿Eliminar este producto?')) return
-    const token = localStorage.getItem('token')
-    await fetch(`/api/products/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    setProducts(products.filter(p => p.id !== id))
+  const handleDelete = (product) => {
+    setDeleteConfirm({ open: true, product })
   }
 
-  const refreshProducts = () => {
+  const confirmDelete = async () => {
+    if (!deleteConfirm.product) return
+    const { product } = deleteConfirm
+    setDeleteConfirm({ open: false, product: null })
+    
+    const token = localStorage.getItem('token')
+    try {
+      const res = await fetch(`/api/products/${product.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Error al eliminar')
+      setProducts(products.filter(p => p.id !== product.id))
+      showToast('Producto eliminado correctamente', 'success')
+    } catch (err) {
+      showToast('Error al eliminar el producto', 'error')
+    }
+  }
+
+  const refreshProducts = (successMessage) => {
     fetch('/api/products')
       .then(res => res.json())
       .then(setProducts)
       .catch(() => {})
     setShowForm(false)
     setEditing(null)
+    if (successMessage) showToast(successMessage, 'success')
   }
 
   const filtered = search.trim()
@@ -329,6 +348,8 @@ export default function AdminProductos() {
               categories={categories}
               onSave={refreshProducts}
               onCancel={() => { setShowForm(false); setEditing(null) }}
+              onError={(msg) => showToast(msg, 'error')}
+              onSuccess={(msg) => showToast(msg, 'success')}
             />
           </div>
         )}
@@ -413,7 +434,7 @@ export default function AdminProductos() {
                             <HiOutlinePencil size={16} />
                           </button>
                           <button
-                            onClick={() => handleDelete(product.id)}
+                            onClick={() => handleDelete(product)}
                             className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-colors"
                             title="Eliminar"
                           >
@@ -429,6 +450,24 @@ export default function AdminProductos() {
           )}
         </div>
       </div>
+
+      <Confirm
+        isOpen={deleteConfirm.open}
+        onClose={() => setDeleteConfirm({ open: false, product: null })}
+        title="Eliminar producto"
+        message={`¿Estás seguro de que quieres eliminar "${deleteConfirm.product?.name}"? Esta acción no se puede deshacer.`}
+        onConfirm={confirmDelete}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="error"
+      />
+
+      {deleteConfirm.open && (
+        <Modal
+          isOpen={true}
+          onClose={() => {}}
+        />
+      )}
     </AdminLayout>
   )
 }

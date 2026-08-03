@@ -26,6 +26,7 @@ function CatalogoContent() {
   const [sort, setSort] = useState('populares')
   const [search, setSearch] = useState(searchParams.get('q') || '')
   const [loading, setLoading] = useState(true)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
   const cache = useRef({})
 
   const fetchProducts = useCallback(() => {
@@ -70,6 +71,7 @@ function CatalogoContent() {
 
   const handleCategory = (slug) => {
     setSelectedCategory(slug)
+    setShowMobileFilters(false)
     const params = new URLSearchParams(searchParams)
     if (slug) params.set('categoria', slug)
     else params.delete('categoria')
@@ -84,6 +86,24 @@ function CatalogoContent() {
   }
 
   const hasFilters = selectedCategory || search || sort !== 'populares'
+
+  const CategoryChip = ({ name, slug, count, active, onClick }) => (
+    <button
+      onClick={() => onClick(slug)}
+      className={`shrink-0 px-5 py-2.5 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
+        active
+          ? 'bg-primary text-white border border-primary shadow-lg shadow-primary/25'
+          : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white hover:border-white/20'
+      }`}
+    >
+      {name}
+      {count !== undefined && (
+        <span className={`text-[10px] px-2 py-0.5 rounded-full ${active ? 'bg-primary/30 text-white' : 'bg-white/10 text-white/50'}`}>
+          {count}
+        </span>
+      )}
+    </button>
+  )
 
   return (
     <>
@@ -105,77 +125,144 @@ function CatalogoContent() {
             </p>
           </header>
 
-          {/* Buscador + Selector */}
+          {/* Buscador + Selector + Filtros mobile */}
           <div className="flex flex-col sm:flex-row gap-4 mb-10 sm:mb-14">
-            <div className="relative flex-1">
-              <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" size={18} />
+            {/* Buscador */}
+            <div className="relative flex-1 group">
+              <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-primary-light transition-colors" size={18} />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nombre, categoría..."
-                className="input-dark h-12 pl-12"
+                className="input-dark h-12 pl-12 pr-12 w-full bg-white/5 border border-white/10 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder-white/30"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors"
                   aria-label="Limpiar búsqueda"
                 >
                   <HiOutlineXMark size={16} />
                 </button>
               )}
             </div>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="input-dark h-12 sm:w-64 cursor-pointer"
-            >
-              {SORTS.map(s => (
-                <option key={s.value} value={s.value} className="bg-graphite">{s.label}</option>
-              ))}
-            </select>
-          </div>
 
-          {/* Categorías */}
-          <div className="flex items-start gap-4 mb-12 sm:mb-14">
-            <HiOutlineAdjustmentsHorizontal className="text-white/25 shrink-0 hidden sm:block mt-4" size={18} />
-            <div className="flex gap-3 overflow-x-auto scrollbar-none flex-1 py-1">
+            {/* Selector orden + Botón filtros mobile */}
+            <div className="flex items-center gap-3 sm:w-auto w-full">
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+                className="input-dark h-12 sm:w-56 w-full cursor-pointer bg-white/5 border border-white/10 focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none bg-no-repeat bg-right pr-10"
+                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A86A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\")", backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem' }}
+              >
+                {SORTS.map(s => (
+                  <option key={s.value} value={s.value} className="bg-graphite">{s.label}</option>
+                ))}
+              </select>
+
+              {/* Botón filtros mobile */}
               <button
-                onClick={() => handleCategory('')}
-                className={`shrink-0 px-6 py-3 rounded-full text-sm font-medium transition-all ${
-                  !selectedCategory
-                    ? 'bg-primary text-white border border-primary shadow-lg shadow-primary/25'
-                    : 'border border-white/10 text-white/50 hover:text-white hover:border-white/25'
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                className={`sm:hidden flex items-center gap-2 px-4 py-3 rounded-lg border transition-all ${
+                  hasFilters || showMobileFilters
+                    ? 'bg-primary/10 border-primary/30 text-primary-light'
+                    : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:border-white/20'
                 }`}
               >
-                Todos
+                <HiOutlineAdjustmentsHorizontal size={18} />
+                <span className="font-medium">Filtros</span>
+                {(hasFilters || showMobileFilters) && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-white">✓</span>
+                )}
               </button>
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategory(cat.slug)}
-                  className={`shrink-0 px-6 py-3 rounded-full text-sm font-medium transition-all ${
-                    selectedCategory === cat.slug
-                      ? 'bg-primary text-white border border-primary shadow-lg shadow-primary/25'
-                      : 'border border-white/10 text-white/50 hover:text-white hover:border-white/25'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
             </div>
           </div>
 
-          {/* Contador de resultados */}
+          {/* Categorías - Desktop */}
+          <div className="hidden sm:block mb-12 sm:mb-14">
+            <div className="flex flex-wrap gap-3">
+              <CategoryChip
+                name="Todos"
+                slug=""
+                count={categories.reduce((acc, c) => acc + (products.filter(p => p.categories?.slug === c.slug).length), 0)}
+                active={!selectedCategory}
+                onClick={handleCategory}
+              />
+              {categories.map(cat => {
+                const count = products.filter(p => p.categories?.slug === cat.slug).length
+                return (
+                  <CategoryChip
+                    key={cat.id}
+                    name={cat.name}
+                    slug={cat.slug}
+                    count={count}
+                    active={selectedCategory === cat.slug}
+                    onClick={handleCategory}
+                  />
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Filtros Mobile - Panel desplegable */}
+          {showMobileFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="sm:hidden mb-8 p-5 bg-white/5 border border-white/10 rounded-2xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-display font-semibold text-white">Categorías</h3>
+                <button
+                  onClick={() => setShowMobileFilters(false)}
+                  className="p-1 text-white/40 hover:text-white"
+                >
+                  <HiOutlineXMark size={20} />
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <CategoryChip
+                  name="Todos"
+                  slug=""
+                  count={products.length}
+                  active={!selectedCategory}
+                  onClick={handleCategory}
+                />
+                {categories.map(cat => {
+                  const count = products.filter(p => p.categories?.slug === cat.slug).length
+                  return (
+                    <CategoryChip
+                      key={cat.id}
+                      name={cat.name}
+                      slug={cat.slug}
+                      count={count}
+                      active={selectedCategory === cat.slug}
+                      onClick={handleCategory}
+                    />
+                  )
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Contador de resultados + Limpiar filtros */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-10">
-            <p className="text-sm text-white/40">
-              {filtered.length} {filtered.length === 1 ? 'producto' : 'productos'}
-              {selectedCategory && ` en ${categories.find(c => c.slug === selectedCategory)?.name || ''}`}
-            </p>
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-white/40">
+                {filtered.length} {filtered.length === 1 ? 'producto' : 'productos'}
+                {selectedCategory && ` en ${categories.find(c => c.slug === selectedCategory)?.name || ''}`}
+              </p>
+              {hasFilters && (
+                <span className="text-[10px] px-2 py-1 rounded-full bg-primary/20 text-primary-light font-medium">
+                  Filtros activos
+                </span>
+              )}
+            </div>
             {hasFilters && (
               <button
                 onClick={clearFilters}
-                className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-primary-light transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white/60 hover:text-primary-light hover:bg-white/5 border border-white/10 rounded-lg transition-all"
               >
                 <HiOutlineXMark size={14} />
                 Limpiar filtros
@@ -196,9 +283,10 @@ function CatalogoContent() {
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="animate-pulse">
                     <div className="aspect-square bg-white/5 rounded-2xl" />
-                    <div className="mt-4 space-y-2">
+                    <div className="mt-4 space-y-2 px-1">
                       <div className="h-4 bg-white/5 rounded w-3/4" />
-                      <div className="h-3 bg-white/5 rounded w-1/2" />
+                      <div className="h-5 bg-white/5 rounded w-1/2" />
+                      <div className="h-6 bg-primary/20 rounded w-1/3" />
                     </div>
                   </div>
                 ))}

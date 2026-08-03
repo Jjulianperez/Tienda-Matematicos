@@ -78,13 +78,13 @@ export default function Home() {
       <Header />
       <main className="flex-1">
         {/* HERO */}
-        <section className="min-h-[calc(100vh-var(--navbar-height))] flex flex-col items-center justify-center px-4 bg-carbon relative overflow-hidden">
+        <section className="min-h-[calc(100vh-var(--navbar-height))] flex items-center justify-center px-4 bg-carbon relative overflow-hidden">
           <GeometricDecor variant="blueprint" className="absolute inset-0 w-full h-full" />
           <div className="absolute inset-0 bg-gradient-to-b from-carbon/60 via-transparent to-carbon" />
           <div className="absolute -top-20 -left-20 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
           <div className="absolute -bottom-20 -right-20 w-96 h-96 rounded-full bg-celeste/10 blur-3xl" />
 
-          <div className="relative z-10 text-center max-w-3xl px-4 py-20 sm:py-24">
+          <div className="relative z-10 w-full max-w-4xl px-4 py-16 sm:py-20 text-center">
             <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
               <span className="badge badge-geo">Precisión Argentina</span>
               <span className="seal seal-leather">Artesanal</span>
@@ -95,7 +95,7 @@ export default function Home() {
               <br />
               <span className="text-primary-light italic">no es casualidad.</span>
             </h1>
-            <p className="mt-7 text-lg sm:text-xl text-white/40 font-display italic">
+            <p className="mt-7 text-lg sm:text-xl text-white/40 font-display italic max-w-2xl mx-auto">
               Es matemática. Y la resolvemos por vos.
             </p>
             <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -117,7 +117,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 animate-bounce text-white/30">
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce text-white/30">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M12 5v14m0 0l-6-6m6 6l6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -148,22 +148,22 @@ export default function Home() {
             <h2 className="font-display text-3xl sm:text-5xl font-bold text-white text-balance leading-tight mt-6 mb-12 sm:mb-16">
               La fórmula del <span className="text-primary-light">Mate Perfecto</span>
             </h2>
-            <div className="card-dark rounded-3xl p-8 sm:p-12 relative overflow-hidden">
+            <div className="card-dark rounded-3xl p-10 sm:p-14 relative overflow-hidden">
               <GeometricDecor variant="grid" className="absolute inset-0 w-full h-full opacity-40" />
-              <div className="relative space-y-4">
+              <div className="relative space-y-6">
                 {INGREDIENTES.map((ing, i) => (
-                  <div key={ing.label} className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xl sm:text-2xl">
+                  <div key={ing.label} className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 text-xl sm:text-2xl">
                     <span className="font-display font-semibold text-white">{ing.label}</span>
                     <span className="text-white/25 font-mono text-sm">[{ing.formula}]</span>
                     {i < INGREDIENTES.length - 1 && (
-                      <span className="text-primary-light font-semibold">+</span>
+                      <span className="text-primary-light font-semibold text-2xl">+</span>
                     )}
                   </div>
                 ))}
-                <div className="border-t border-white/10 pt-8 mt-8">
-                  <div className="flex flex-wrap items-center justify-center gap-3">
-                    <span className="font-mono text-primary-light text-2xl">→</span>
-                    <p className="font-display text-4xl font-bold text-white">
+                <div className="border-t border-white/10 pt-10 mt-10">
+                  <div className="flex flex-wrap items-center justify-center gap-4">
+                    <span className="font-mono text-primary-light text-3xl">→</span>
+                    <p className="font-display text-4xl sm:text-5xl font-bold text-white">
                       Mate <span className="text-primary-light">Perfecto</span>
                     </p>
                   </div>
