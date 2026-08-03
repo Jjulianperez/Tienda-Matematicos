@@ -106,7 +106,8 @@ export default function ProductoDetalle() {
       setShowBuyModal(false)
       setFormData({ customer_name: '', customer_phone: '' })
 
-      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${orderMessage}`, '_blank', 'noopener,noreferrer')
+      // Usar window.location.href para evitar bloqueo de popup
+      window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${orderMessage}`
 
     } catch (err) {
       setBuyError(err.message)
