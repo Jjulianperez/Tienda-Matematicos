@@ -1,6 +1,7 @@
 import { Fraunces, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
+import { CartProvider } from "@/context/CartContext";
 
 const fraunces = Fraunces({
   variable: "--font-display",
@@ -23,7 +24,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es" className={`${fraunces.variable} ${spaceGrotesk.variable} antialiased`}>
       <body className="min-h-screen flex flex-col font-body">
-        <SmoothScroll>{children}</SmoothScroll>
+        <CartProvider>
+          <SmoothScroll>{children}</SmoothScroll>
+        </CartProvider>
       </body>
     </html>
   );
