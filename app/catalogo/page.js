@@ -17,6 +17,26 @@ const SORTS = [
   { value: 'precio-desc', label: 'Mayor precio' },
 ]
 
+function CategoryChip({ name, slug, count, active, onClick }) {
+  return (
+    <button
+      onClick={() => onClick(slug)}
+      className={`shrink-0 px-5 py-2.5 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
+        active
+          ? 'bg-primary text-white border border-primary shadow-lg shadow-primary/25'
+          : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white hover:border-white/20'
+      }`}
+    >
+      {name}
+      {count !== undefined && (
+        <span className={`text-[10px] px-2 py-0.5 rounded-full ${active ? 'bg-primary/30 text-white' : 'bg-white/10 text-white/50'}`}>
+          {count}
+        </span>
+      )}
+    </button>
+  )
+}
+
 function CatalogoContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -86,24 +106,6 @@ function CatalogoContent() {
   }
 
   const hasFilters = selectedCategory || search || sort !== 'populares'
-
-  const CategoryChip = ({ name, slug, count, active, onClick }) => (
-    <button
-      onClick={() => onClick(slug)}
-      className={`shrink-0 px-5 py-2.5 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-        active
-          ? 'bg-primary text-white border border-primary shadow-lg shadow-primary/25'
-          : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white hover:border-white/20'
-      }`}
-    >
-      {name}
-      {count !== undefined && (
-        <span className={`text-[10px] px-2 py-0.5 rounded-full ${active ? 'bg-primary/30 text-white' : 'bg-white/10 text-white/50'}`}>
-          {count}
-        </span>
-      )}
-    </button>
-  )
 
   return (
     <>
