@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireAdmin } from '@/lib/auth'
+import { attachPromoInfo } from '@/lib/pricing'
 
 export async function GET(request, { params }) {
   const { id } = await params
@@ -15,7 +16,16 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 })
   }
 
-  return NextResponse.json(product)
+  const now = new Date().toISOString()
+  const { data: promos } = await supabaseAdmin
+    .from('promotions')
+    .select('*, items:promotion_items(*)')
+    .eq('is_active', true)
+    .eq('type', 'promo')
+    .or(`starts_at.is.null,starts_at.lte.${now}`)
+    .or(`ends_at.is.null,ends_at.gte.${now}`)
+
+  return NextResponse.json(attachPromoInfo(product, promos || []))
 }
 
 export async function PATCH(request, { params }) {

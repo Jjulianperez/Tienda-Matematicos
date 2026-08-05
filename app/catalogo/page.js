@@ -47,6 +47,7 @@ function CatalogoContent() {
   const [search, setSearch] = useState(searchParams.get('q') || '')
   const [loading, setLoading] = useState(true)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const [onlyOffers, setOnlyOffers] = useState(searchParams.get('oferta') === '1')
   const cache = useRef({})
 
   const fetchProducts = useCallback(() => {
@@ -81,13 +82,26 @@ function CatalogoContent() {
       .catch(() => {})
   }, [])
 
-  const filtered = search.trim()
-    ? products.filter(p =>
-        p.name?.toLowerCase().includes(search.toLowerCase()) ||
-        p.description?.toLowerCase().includes(search.toLowerCase()) ||
-        p.categories?.name?.toLowerCase().includes(search.toLowerCase())
-      )
-    : products
+  const filtered = (() => {
+    let result = search.trim()
+      ? products.filter(p =>
+          p.name?.toLowerCase().includes(search.toLowerCase()) ||
+          p.description?.toLowerCase().includes(search.toLowerCase()) ||
+          p.categories?.name?.toLowerCase().includes(search.toLowerCase())
+        )
+      : products
+    if (onlyOffers) result = result.filter(p => p.promo)
+    return result
+  })()
+
+  const toggleOffers = () => {
+    const next = !onlyOffers
+    setOnlyOffers(next)
+    const params = new URLSearchParams(searchParams)
+    if (next) params.set('oferta', '1')
+    else params.delete('oferta')
+    router.replace(`/catalogo?${params.toString()}`, { scroll: false })
+  }
 
   const handleCategory = (slug) => {
     setSelectedCategory(slug)
@@ -102,10 +116,11 @@ function CatalogoContent() {
     setSelectedCategory('')
     setSearch('')
     setSort('populares')
+    setOnlyOffers(false)
     router.replace('/catalogo', { scroll: false })
   }
 
-  const hasFilters = selectedCategory || search || sort !== 'populares'
+  const hasFilters = selectedCategory || search || sort !== 'populares' || onlyOffers
 
   return (
     <>
@@ -187,8 +202,15 @@ function CatalogoContent() {
                 name="Todos"
                 slug=""
                 count={categories.reduce((acc, c) => acc + (products.filter(p => p.categories?.slug === c.slug).length), 0)}
-                active={!selectedCategory}
+                active={!selectedCategory && !onlyOffers}
                 onClick={handleCategory}
+              />
+              <CategoryChip
+                name="En oferta"
+                slug="oferta"
+                count={products.filter(p => p.promo).length}
+                active={onlyOffers}
+                onClick={toggleOffers}
               />
               {categories.map(cat => {
                 const count = products.filter(p => p.categories?.slug === cat.slug).length
@@ -228,8 +250,15 @@ function CatalogoContent() {
                   name="Todos"
                   slug=""
                   count={products.length}
-                  active={!selectedCategory}
+                  active={!selectedCategory && !onlyOffers}
                   onClick={handleCategory}
+                />
+                <CategoryChip
+                  name="En oferta"
+                  slug="oferta"
+                  count={products.filter(p => p.promo).length}
+                  active={onlyOffers}
+                  onClick={toggleOffers}
                 />
                 {categories.map(cat => {
                   const count = products.filter(p => p.categories?.slug === cat.slug).length

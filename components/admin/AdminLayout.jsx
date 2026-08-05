@@ -8,6 +8,7 @@ import {
   HiOutlineSquares2X2,
   HiOutlineCube,
   HiOutlineClipboardDocumentList,
+  HiOutlineTag,
   HiOutlineHome,
   HiOutlineArrowRightOnRectangle,
   HiOutlineBars3,
@@ -17,6 +18,7 @@ import {
 const NAV = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: HiOutlineSquares2X2 },
   { label: 'Productos', href: '/admin/productos', icon: HiOutlineCube },
+  { label: 'Promociones', href: '/admin/promociones', icon: HiOutlineTag },
   { label: 'Órdenes', href: '/admin/ordenes', icon: HiOutlineClipboardDocumentList },
 ]
 

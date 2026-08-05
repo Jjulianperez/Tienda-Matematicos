@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutlinePhoto, HiOutlineCog6Tooth, HiOutlineInformationCircle } from 'react-icons/hi2'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { Modal, Alert, Confirm, useToast } from '@/components/Modal'
+import { Alert, Confirm, useToast } from '@/components/Modal'
 
 function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess }) {
   const [tab, setTab] = useState('info')
@@ -461,13 +461,6 @@ export default function AdminProductos() {
         cancelText="Cancelar"
         type="error"
       />
-
-      {deleteConfirm.open && (
-        <Modal
-          isOpen={true}
-          onClose={() => {}}
-        />
-      )}
     </AdminLayout>
   )
 }

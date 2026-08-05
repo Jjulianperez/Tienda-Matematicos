@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireAdmin } from '@/lib/auth'
+import { attachPromoInfo } from '@/lib/pricing'
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
@@ -39,7 +40,22 @@ export async function GET(request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json(products)
+  const promos = await getActivePromos()
+  const withPromos = (products || []).map(p => attachPromoInfo(p, promos))
+
+  return NextResponse.json(withPromos)
+}
+
+async function getActivePromos() {
+  const now = new Date().toISOString()
+  const { data } = await supabaseAdmin
+    .from('promotions')
+    .select('*, items:promotion_items(*)')
+    .eq('is_active', true)
+    .eq('type', 'promo')
+    .or(`starts_at.is.null,starts_at.lte.${now}`)
+    .or(`ends_at.is.null,ends_at.gte.${now}`)
+  return data || []
 }
 
 export async function POST(request) {

@@ -1,30 +1,63 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { useCart } from '@/context/CartContext'
+import { useCart, getEffectiveUnitPrice } from '@/context/CartContext'
 import { HiOutlineXMark, HiOutlineMinus, HiOutlinePlus, HiOutlineTrash, HiOutlineArrowRight } from 'react-icons/hi2'
 import Image from 'next/image'
 import { getOptimizedUrl } from '@/lib/images'
 
-function CartSidebarItem({ item, onUpdate, onRemove }) {
+function CartSidebarItem({ item, unitPrice, isDiscounted, promoNote, onUpdate, onRemove }) {
+  if (item.type === 'combo') {
+    return (
+      <div className="flex gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
+        <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-white/5 flex-shrink-0">
+          {item.image ? (
+            <Image src={getOptimizedUrl(item.image, 100)} alt={item.name} fill className="object-cover" sizes="64px" />
+          ) : (
+            <div className="flex items-center justify-center h-full text-2xl">🏷️</div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h4 className="text-white font-medium text-sm line-clamp-1">{item.name}</h4>
+          {item.originalPrice > Number(item.price) && (
+            <p className="text-xs text-white/30 line-through">
+              ${Number(item.originalPrice).toLocaleString('es-AR')}
+            </p>
+          )}
+          <p className="text-primary-light font-semibold text-sm mt-0.5">${Number(item.price).toLocaleString('es-AR')}</p>
+          <p className="text-[10px] text-white/30 mt-1">Combo · {item.items?.length || 0} productos</p>
+        </div>
+        <button
+          onClick={() => onRemove(item.productId)}
+          className="p-2 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors self-start"
+          aria-label="Eliminar"
+        >
+          <HiOutlineTrash size={18} />
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="flex gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
       <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-white/5 flex-shrink-0">
         {item.image ? (
-          <Image
-            src={getOptimizedUrl(item.image, 100)}
-            alt={item.name}
-            fill
-            className="object-cover"
-            sizes="64px"
-          />
+          <Image src={getOptimizedUrl(item.image, 100)} alt={item.name} fill className="object-cover" sizes="64px" />
         ) : (
           <div className="flex items-center justify-center h-full text-2xl">🧉</div>
         )}
       </div>
       <div className="flex-1 min-w-0">
         <h4 className="text-white font-medium text-sm line-clamp-1">{item.name}</h4>
-        <p className="text-primary-light font-semibold text-sm mt-0.5">${Number(item.price).toLocaleString('es-AR')}</p>
+        {isDiscounted ? (
+          <div className="flex items-baseline gap-1.5 mt-0.5">
+            <span className="text-xs text-white/30 line-through">${Number(item.price).toLocaleString('es-AR')}</span>
+            <span className="text-primary-light font-semibold text-sm">${unitPrice.toLocaleString('es-AR')}</span>
+          </div>
+        ) : (
+          <p className="text-primary-light font-semibold text-sm mt-0.5">${unitPrice.toLocaleString('es-AR')}</p>
+        )}
+        {promoNote && <p className="text-[10px] text-primary-light/80 mt-1">{promoNote}</p>}
         <div className="flex items-center gap-2 mt-2">
           <button
             onClick={() => onUpdate(item.productId, item.quantity - 1)}
@@ -55,6 +88,12 @@ function CartSidebarItem({ item, onUpdate, onRemove }) {
       </button>
     </div>
   )
+}
+
+function categoryQty(items, categoryId) {
+  return items
+    .filter(i => i.type !== 'combo' && i.categoryId === categoryId)
+    .reduce((sum, i) => sum + i.quantity, 0)
 }
 
 export function CartSidebar() {
@@ -88,7 +127,6 @@ export function CartSidebar() {
           exit={{ x: '100%' }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
-          {/* Header */}
           <div className="flex items-center justify-between p-5 border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -107,7 +145,6 @@ export function CartSidebar() {
             </button>
           </div>
 
-          {/* Items */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {state.items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-12">
@@ -119,9 +156,30 @@ export function CartSidebar() {
               </div>
             ) : (
               <>
-                {state.items.map(item => (
-                  <CartSidebarItem key={item.productId} item={item} onUpdate={updateQuantity} onRemove={removeItem} />
-                ))}
+                {state.items.map(item => {
+                  const unitPrice = getEffectiveUnitPrice(item, state.items)
+                  const isDiscounted = item.type !== 'combo' && item.promo && unitPrice < Number(item.price)
+
+                  let promoNote = ''
+                  if (item.type !== 'combo' && item.promo && item.promo.min_quantity > 1 && item.promo.category_id) {
+                    const qty = categoryQty(state.items, item.promo.category_id)
+                    if (qty < item.promo.min_quantity) {
+                      promoNote = `Agregá ${item.promo.min_quantity - qty} más para el descuento`
+                    }
+                  }
+
+                  return (
+                    <CartSidebarItem
+                      key={item.productId}
+                      item={item}
+                      unitPrice={unitPrice}
+                      isDiscounted={isDiscounted}
+                      promoNote={promoNote}
+                      onUpdate={updateQuantity}
+                      onRemove={removeItem}
+                    />
+                  )
+                })}
                 <div className="pt-4 border-t border-white/10">
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-white/50">Subtotal ({totalItems} items)</span>
@@ -129,7 +187,7 @@ export function CartSidebar() {
                   </div>
                   <div className="text-xs text-white/30 mb-4">El envío se calcula en el checkout</div>
                   <button
-                    onClick={() => window.location.href = '/carrito'}
+                    onClick={handleCheckout}
                     disabled={state.items.length === 0}
                     className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >

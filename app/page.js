@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ProductCard from '@/components/ProductCard'
+import ComboCard from '@/components/ComboCard'
 import GeometricDecor from '@/components/ui/GeometricDecor'
 import { fadeInUp, staggerCards } from '@/lib/animations'
 import { HiOutlineArrowRight } from 'react-icons/hi2'
@@ -58,12 +59,17 @@ const PASOS = [
 export default function Home() {
   const router = useRouter()
   const [products, setProducts] = useState([])
+  const [promos, setPromos] = useState([])
   const productsRef = useRef(null)
 
   useEffect(() => {
     fetch('/api/products')
       .then(res => res.json())
       .then(data => setProducts(data?.slice(0, 8) || []))
+      .catch(() => {})
+    fetch('/api/promotions/public')
+      .then(res => res.json())
+      .then(data => setPromos(data || []))
       .catch(() => {})
   }, [])
 
@@ -229,6 +235,35 @@ export default function Home() {
                     product={product}
                     onClick={() => router.push(`/producto/${product.id}`)}
                   />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* OFERTAS Y COMBOS */}
+        {promos.length > 0 && (
+          <section className="section-pad bg-carbon border-t border-white/5">
+            <div className="container-page">
+              <div className="section-head flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
+                <div>
+                  <span className="badge badge-oferta mb-4">Ofertas</span>
+                  <h2 className="font-display text-3xl sm:text-5xl font-bold text-white mt-6 text-balance">
+                    Combos y <span className="text-primary-light">descuentos</span>
+                  </h2>
+                  <p className="mt-4 text-white/40">Elegí el combo perfecto o aprovechá las ofertas por cantidad</p>
+                </div>
+                <Link
+                  href="/catalogo"
+                  className="inline-flex items-center gap-2 btn-ghost"
+                >
+                  Ver todas las ofertas
+                  <HiOutlineArrowRight size={15} />
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                {promos.slice(0, 3).map(combo => (
+                  <ComboCard key={combo.id} combo={combo} />
                 ))}
               </div>
             </div>

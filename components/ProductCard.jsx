@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { HiOutlineArrowTopRightOnSquare, HiOutlineEye, HiOutlinePlus } from 'react-icons/hi2'
 import { getOptimizedUrl } from '@/lib/images'
 import { useCart } from '@/context/CartContext'
+import { computeSalePrice, discountPercentOf } from '@/lib/pricing'
 
 function getBadges(product) {
   const badges = []
@@ -19,17 +20,34 @@ export default function ProductCard({ product, onClick }) {
   const badges = getBadges(product)
   const { addItem, openCart } = useCart()
 
+  const promo = product.promo
+  const fullPrice = Number(product.price)
+  const salePrice = promo ? computeSalePrice(fullPrice, promo.discount_type, promo.discount_value) : null
+  const isThreshold = promo && promo.min_quantity > 1
+  const discountPct = promo ? discountPercentOf(fullPrice, salePrice) : 0
+
   const handleAddToCart = (e) => {
     e.stopPropagation()
     if (product.stock <= 0) return
     addItem({
       productId: product.id,
+      type: 'product',
       name: product.name,
-      price: product.price,
+      price: fullPrice,
       image: product.images?.[0],
       quantity: 1,
-      stock: product.stock
+      stock: product.stock,
+      categoryId: product.category_id,
+      promo: promo
+        ? {
+            discount_type: promo.discount_type,
+            discount_value: promo.discount_value,
+            min_quantity: promo.min_quantity,
+            category_id: promo.category_id,
+          }
+        : null,
     })
+    openCart()
   }
 
   return (
@@ -68,6 +86,12 @@ export default function ProductCard({ product, onClick }) {
           <span className="absolute top-4 right-4 badge badge-stock transition-transform hover:scale-105">Stock: {product.stock}</span>
         )}
 
+        {promo && (
+          <span className="absolute bottom-4 left-4 badge badge-oferta shadow-lg shadow-primary/20">
+            {discountPct}% OFF{isThreshold ? ` en ${promo.min_quantity}+` : ''}
+          </span>
+        )}
+
         {/* Overlay con "Ver Producto" en hover */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <button
@@ -103,14 +127,25 @@ export default function ProductCard({ product, onClick }) {
 
         {/* Footer: Precio y Botones */}
         <div className="mt-auto pt-5 border-t border-white/10">
-          <div className="flex items-end justify-between mb-4">
+          <div className="flex items-end justify-between gap-3 mb-4">
             <div className="min-w-0">
               <span className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">
                 Precio
               </span>
-              <span className="font-display font-bold text-xl sm:text-2xl text-primary-light leading-none whitespace-nowrap">
-                ${Number(product.price).toLocaleString('es-AR')}
-              </span>
+              {promo && !isThreshold ? (
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-base sm:text-lg text-white/40 line-through">
+                    ${fullPrice.toLocaleString('es-AR')}
+                  </span>
+                  <span className="font-display font-bold text-xl sm:text-2xl text-primary-light leading-none">
+                    ${salePrice.toLocaleString('es-AR')}
+                  </span>
+                </div>
+              ) : (
+                <span className="font-display font-bold text-xl sm:text-2xl text-primary-light leading-none whitespace-nowrap">
+                  ${fullPrice.toLocaleString('es-AR')}
+                </span>
+              )}
             </div>
             {product.stock <= 0 && (
               <span className="text-[11px] font-semibold text-red-400 whitespace-nowrap">Sin stock</span>

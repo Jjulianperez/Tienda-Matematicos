@@ -23,6 +23,7 @@ import {
   HiOutlineExclamationCircle,
 } from 'react-icons/hi2'
 import { getOptimizedUrl } from '@/lib/images'
+import { computeSalePrice, discountPercentOf } from '@/lib/pricing'
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER
 
@@ -62,10 +63,18 @@ function ProductoDetalle({ id }) {
   const [formData, setFormData] = useState({ customer_name: '', customer_phone: '' })
   const [buyError, setBuyError] = useState('')
 
+  const productPrice = product ? Number(product.price) : 0
+  const salePrice = product?.promo
+    ? computeSalePrice(productPrice, product.promo.discount_type, product.promo.discount_value)
+    : productPrice
+  const isThresholdPromo = product?.promo && product.promo.min_quantity > 1
+  const buyPrice = isThresholdPromo ? productPrice : salePrice
+  const discountPct = product?.promo ? discountPercentOf(productPrice, salePrice) : 0
+
   const whatsappMessage = encodeURIComponent(
     `Hola, vengo del catálogo de MateMáticos.\n\nQuiero consultar por:\n` +
     `*${product?.name}*\n` +
-    `Precio: $${product ? Number(product.price).toLocaleString('es-AR') : ''}\n\n` +
+    `Precio: $${product ? buyPrice.toLocaleString('es-AR') : ''}\n\n` +
     `¿Está disponible?`
   )
 
@@ -77,8 +86,12 @@ function ProductoDetalle({ id }) {
     if (!product) return
 
     const body = {
-      product_id: product.id,
-      quantity: 1,
+      items: [{
+        type: 'product',
+        product_id: product.id,
+        quantity: 1,
+        unit_price: buyPrice,
+      }],
       customer_name: formData.customer_name.trim(),
       customer_phone: formData.customer_phone.trim(),
     }
@@ -95,14 +108,15 @@ function ProductoDetalle({ id }) {
         throw new Error(data.error || 'Error al crear la orden')
       }
 
-      const order = await res.json()
+      const result = await res.json()
+      const orderNumber = result.order_number
 
       const orderMessage = encodeURIComponent(
         `Hola, vengo del catálogo de MateMáticos.\n\n` +
         `Quiero confirmar mi pedido:\n` +
-        `*Orden #${order.id.slice(0, 8).toUpperCase()}*\n` +
+        `*Orden #${orderNumber}*\n` +
         `*${product.name}*\n` +
-        `Precio: $${Number(product.price).toLocaleString('es-AR')}\n` +
+        `Precio: $${buyPrice.toLocaleString('es-AR')}\n` +
         `Cliente: ${formData.customer_name}\n` +
         `Teléfono: ${formData.customer_phone}\n\n` +
         `¿Confirmamos el pedido?`
@@ -111,8 +125,8 @@ function ProductoDetalle({ id }) {
       setShowBuyModal(false)
       setFormData({ customer_name: '', customer_phone: '' })
 
-      // Usar window.location.href para evitar bloqueo de popup
-      window.location.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${orderMessage}`
+      // Usar window.location.assign para evitar bloqueo de popup
+      window.location.assign(`https://wa.me/${WHATSAPP_NUMBER}?text=${orderMessage}`)
 
     } catch (err) {
       setBuyError(err.message)
@@ -263,12 +277,30 @@ function ProductoDetalle({ id }) {
                 {product.name}
               </h1>
 
-              <p className="mt-6 text-3xl font-display font-semibold text-primary-light">
-                ${Number(product.price).toLocaleString('es-AR')}
-              </p>
-              <p className="text-xs text-white/30 mt-2">
-                {Number(product.whatsapp_clicks || 0).toLocaleString('es-AR')} consultas de clientes
-              </p>
+              <div className="mt-6">
+                {product.promo && !isThresholdPromo ? (
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-xl text-white/40 line-through">
+                      ${productPrice.toLocaleString('es-AR')}
+                    </span>
+                    <span className="text-3xl font-display font-semibold text-primary-light">
+                      ${salePrice.toLocaleString('es-AR')}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-3xl font-display font-semibold text-primary-light">
+                    ${salePrice.toLocaleString('es-AR')}
+                  </p>
+                )}
+                {product.promo && (
+                  <span className="inline-block mt-3 badge badge-oferta">
+                    {discountPct}% OFF{isThresholdPromo ? ` en ${product.promo.min_quantity}+` : ''}
+                  </span>
+                )}
+                <p className="text-xs text-white/30 mt-2">
+                  {Number(product.whatsapp_clicks || 0).toLocaleString('es-AR')} consultas de clientes
+                </p>
+              </div>
 
               <div className="divider-geo my-8" />
 

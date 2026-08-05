@@ -1,23 +1,30 @@
 'use client'
 
 import { createContext, useContext, useReducer, useEffect } from 'react'
+import { computeSalePrice } from '@/lib/pricing'
 
 const CartContext = createContext(null)
 
 function cartReducer(state, action) {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const existingIndex = state.items.findIndex(i => i.productId === action.payload.productId)
+      const item = action.payload
+      if (item.type === 'combo') {
+        const exists = state.items.some(i => i.productId === item.productId)
+        if (exists) return state
+        return { ...state, items: [...state.items, item], isOpen: true }
+      }
+      const existingIndex = state.items.findIndex(i => i.productId === item.productId)
       if (existingIndex >= 0) {
         const newItems = [...state.items]
         const newQuantity = Math.min(
-          newItems[existingIndex].quantity + action.payload.quantity,
+          newItems[existingIndex].quantity + item.quantity,
           newItems[existingIndex].stock
         )
         newItems[existingIndex] = { ...newItems[existingIndex], quantity: newQuantity }
         return { ...state, items: newItems, isOpen: true }
       }
-      return { ...state, items: [...state.items, action.payload], isOpen: true }
+      return { ...state, items: [...state.items, item], isOpen: true }
     }
     case 'REMOVE_ITEM':
       return { ...state, items: state.items.filter(i => i.productId !== action.payload) }
@@ -29,7 +36,9 @@ function cartReducer(state, action) {
         ...state,
         items: state.items.map(item =>
           item.productId === action.payload.productId
-            ? { ...item, quantity: Math.min(action.payload.quantity, item.stock) }
+            ? item.type === 'combo'
+              ? item
+              : { ...item, quantity: Math.min(action.payload.quantity, item.stock) }
             : item
         )
       }
@@ -47,6 +56,20 @@ function cartReducer(state, action) {
     default:
       return state
   }
+}
+
+export function getEffectiveUnitPrice(item, allItems) {
+  if (item.type === 'combo') return Number(item.price)
+  const base = Number(item.price)
+  const promo = item.promo
+  if (!promo) return base
+  if (promo.min_quantity > 1 && promo.category_id) {
+    const catQty = allItems
+      .filter(i => i.type !== 'combo' && i.categoryId === promo.category_id)
+      .reduce((sum, i) => sum + i.quantity, 0)
+    if (catQty < promo.min_quantity) return base
+  }
+  return computeSalePrice(base, promo.discount_type, promo.discount_value)
 }
 
 export function CartProvider({ children }) {
@@ -76,7 +99,9 @@ export function CartProvider({ children }) {
   const closeCart = () => dispatch({ type: 'CLOSE_CART' })
   const toggleCart = () => dispatch({ type: 'TOGGLE_CART' })
 
-  const subtotal = state.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = state.items.reduce((sum, item) => {
+    return sum + getEffectiveUnitPrice(item, state.items) * item.quantity
+  }, 0)
   const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0)
 
   return (

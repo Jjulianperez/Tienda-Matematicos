@@ -24,12 +24,50 @@ CREATE TABLE IF NOT EXISTS products (
 
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_number TEXT,
   product_id UUID REFERENCES products(id) ON DELETE SET NULL,
   quantity INTEGER NOT NULL DEFAULT 1,
+  product_name TEXT,
+  price_at_order DECIMAL(10,2),
+  combo_items JSONB,
   customer_name TEXT,
   customer_phone TEXT,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'cancelled')),
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Columnas nuevas para orders (si la tabla ya existía)
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_number TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS product_name TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS price_at_order DECIMAL(10,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS combo_items JSONB;
+
+-- Promociones y combos
+CREATE TABLE IF NOT EXISTS promotions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  type TEXT NOT NULL CHECK (type IN ('combo', 'promo')),
+  image TEXT,
+  price DECIMAL(10,2),
+  discount_type TEXT CHECK (discount_type IN ('percent', 'fixed')),
+  discount_value DECIMAL(10,2),
+  min_quantity INTEGER DEFAULT 1,
+  is_active BOOLEAN DEFAULT TRUE,
+  starts_at TIMESTAMPTZ DEFAULT NOW(),
+  ends_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Items que componen una promoción o combo
+CREATE TABLE IF NOT EXISTS promotion_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  promotion_id UUID NOT NULL REFERENCES promotions(id) ON DELETE CASCADE,
+  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+  category_id UUID REFERENCES categories(id) ON DELETE CASCADE,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  UNIQUE (promotion_id, product_id),
+  UNIQUE (promotion_id, category_id)
 );
 
 CREATE TABLE IF NOT EXISTS admins (
