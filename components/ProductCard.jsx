@@ -2,8 +2,9 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
-import { HiOutlineArrowTopRightOnSquare, HiOutlineEye } from 'react-icons/hi2'
+import { HiOutlineArrowTopRightOnSquare, HiOutlineEye, HiOutlinePlus } from 'react-icons/hi2'
 import { getOptimizedUrl } from '@/lib/images'
+import { useCart } from '@/context/CartContext'
 
 function getBadges(product) {
   const badges = []
@@ -16,6 +17,20 @@ export default function ProductCard({ product, onClick }) {
   const imgUrl = getOptimizedUrl(product.images?.[0], 600)
   const [imgLoaded, setImgLoaded] = useState(false)
   const badges = getBadges(product)
+  const { addItem, openCart } = useCart()
+
+  const handleAddToCart = (e) => {
+    e.stopPropagation()
+    if (product.stock <= 0) return
+    addItem({
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.images?.[0],
+      quantity: 1,
+      stock: product.stock
+    })
+  }
 
   return (
     <article
@@ -86,24 +101,40 @@ export default function ProductCard({ product, onClick }) {
           {product.description}
         </p>
 
-        {/* Footer: Precio y Botón */}
-        <div className="flex items-center justify-between gap-4 mt-auto pt-5 border-t border-white/10">
-          <div>
-            <span className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">
-              Precio
-            </span>
-            <span className="font-display font-bold text-xl sm:text-2xl text-primary-light leading-none">
-              ${Number(product.price).toLocaleString('es-AR')}
-            </span>
+        {/* Footer: Precio y Botones */}
+        <div className="mt-auto pt-5 border-t border-white/10">
+          <div className="flex items-end justify-between mb-4">
+            <div className="min-w-0">
+              <span className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">
+                Precio
+              </span>
+              <span className="font-display font-bold text-xl sm:text-2xl text-primary-light leading-none whitespace-nowrap">
+                ${Number(product.price).toLocaleString('es-AR')}
+              </span>
+            </div>
+            {product.stock <= 0 && (
+              <span className="text-[11px] font-semibold text-red-400 whitespace-nowrap">Sin stock</span>
+            )}
           </div>
-          
-          <button
-            onClick={(e) => { e.stopPropagation(); onClick?.(product); }}
-            className="inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-medium text-white/90 hover:text-white hover:border-primary/40 transition-all"
-          >
-            Detalles
-            <HiOutlineArrowTopRightOnSquare size={16} />
-          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAddToCart}
+              disabled={product.stock <= 0}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-medium text-white/90 hover:text-white hover:border-primary/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Añadir al carrito"
+            >
+              <HiOutlinePlus size={15} />
+              Añadir
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onClick?.(product); }}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-primary hover:bg-primary-dark text-xs sm:text-sm font-semibold text-white transition-all"
+            >
+              Comprar
+              <HiOutlineArrowTopRightOnSquare size={14} />
+            </button>
+          </div>
         </div>
       </div>
     </article>
