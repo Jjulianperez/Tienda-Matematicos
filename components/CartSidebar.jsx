@@ -145,7 +145,7 @@ export function CartSidebar() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div data-lenis-prevent className="flex-1 overflow-y-auto p-4 space-y-4">
             {state.items.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center py-12">
                 <svg className="w-16 h-16 text-white/10 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

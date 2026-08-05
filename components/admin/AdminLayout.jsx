@@ -123,7 +123,7 @@ export default function AdminLayout({ title, children }) {
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="absolute left-0 top-0 h-full overflow-y-auto">{sidebar}</div>
+          <div className="absolute left-0 top-0 h-full overflow-y-auto" data-lenis-prevent>{sidebar}</div>
         </div>
       )}
 

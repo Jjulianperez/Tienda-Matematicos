@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import Lenis from 'lenis'
+import { registerLenis } from '@/lib/lenisLock'
 
 export default function SmoothScroll({ children }) {
   const lenisRef = useRef(null)
@@ -15,6 +16,7 @@ export default function SmoothScroll({ children }) {
     })
 
     lenisRef.current = lenis
+    const unregister = registerLenis(lenis)
 
     function raf(time) {
       lenis.raf(time)
@@ -23,7 +25,10 @@ export default function SmoothScroll({ children }) {
 
     requestAnimationFrame(raf)
 
-    return () => lenis.destroy()
+    return () => {
+      unregister()
+      lenis.destroy()
+    }
   }, [])
 
   return children

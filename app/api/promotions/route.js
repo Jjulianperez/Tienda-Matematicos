@@ -87,6 +87,6 @@ export async function POST(request) {
 
     return NextResponse.json({ ...promo, items: insertedItems }, { status: 201 })
   } catch (error) {
-    return NextResponse.json({ error: 'Error al crear la promoción' }, { status: 500 })
+    return NextResponse.json({ error: error.message || 'Error al crear la promoción' }, { status: 500 })
   }
 }
