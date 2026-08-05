@@ -8,6 +8,7 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ProductCard from '@/components/ProductCard'
 import GeometricDecor from '@/components/ui/GeometricDecor'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   HiOutlineShoppingBag,
   HiOutlineChatBubbleLeftRight,
@@ -43,8 +44,12 @@ const FAQS = [
   { q: '¿Los mates vienen listos para usar?', a: 'Sí. Recomendamos curar el mate siguiendo nuestra guía de cuidados para potenciar su sabor.' },
 ]
 
-export default function ProductoDetalle() {
+export default function ProductoDetallePage() {
   const { id } = useParams()
+  return <ProductoDetalle key={id} id={id} />
+}
+
+function ProductoDetalle({ id }) {
   const router = useRouter()
   const [product, setProduct] = useState(null)
   const [related, setRelated] = useState([])
@@ -117,11 +122,6 @@ export default function ProductoDetalle() {
   }
 
   useEffect(() => {
-    setLoading(true)
-    setActiveImg(0)
-    setZoom(false)
-    setOpenFaq(0)
-
     fetch(`/api/products/${id}`)
       .then(res => {
         if (!res.ok) throw new Error('not found')
@@ -142,7 +142,7 @@ export default function ProductoDetalle() {
         setLoading(false)
         router.replace('/catalogo')
       })
-  }, [id])
+  }, [id, router])
 
   if (loading) {
     return (
