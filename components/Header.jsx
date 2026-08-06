@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { HiOutlineBars3, HiOutlineXMark, HiOutlineMagnifyingGlass, HiOutlineUser } from 'react-icons/hi2'
+import { HiOutlineBars3, HiOutlineXMark, HiOutlineMagnifyingGlass } from 'react-icons/hi2'
 import { CartIcon } from '@/components/ui/CartIcon'
 import { CartSidebar } from '@/components/CartSidebar'
 
@@ -106,14 +106,6 @@ export default function Header() {
                 <HiOutlineMagnifyingGlass size={20} />
               </button>
 
-              <Link
-                href="/admin/login"
-                className="p-3 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-                aria-label="Cuenta"
-              >
-                <HiOutlineUser size={20} />
-              </Link>
-
               <CartIcon />
             </div>
           </div>
@@ -133,7 +125,6 @@ export default function Header() {
                   { label: 'Catálogo', href: '/catalogo' },
                   { label: 'Mates', href: '/catalogo?categoria=mates' },
                   { label: 'Termos', href: '/catalogo?categoria=termos' },
-                  { label: 'Panel Admin', href: '/admin/dashboard' },
                 ].map((item) => (
                   <Link
                     key={item.label}
