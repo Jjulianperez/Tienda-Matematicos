@@ -30,18 +30,18 @@ const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER
 const SPECS = [
   { key: 'Origen', value: 'Argentina' },
   { key: 'Garantía', value: '100% artesanal' },
-  { key: 'Entrega', value: 'Envíos a todo el país' },
+  { key: 'Entrega', value: 'Coordinar envio con el Vendedor' },
 ]
 
 const BENEFITS = [
-  { icon: HiOutlineTruck, title: 'Envío seguro', desc: 'Packaging reforzado para que llegue intacto.' },
-  { icon: HiOutlineShieldCheck, title: 'Calidad garantizada', desc: 'Seleccionado a mano por nuestros artesanos.' },
+  { icon: HiOutlineTruck, title: 'Envío seguro', desc: 'Te damos bolsa y de vez en cuando un regalito.' },
+  { icon: HiOutlineShieldCheck, title: 'Calidad garantizada', desc: 'Seleccionado a mano por el vendedor.' },
   { icon: HiOutlineSparkles, title: 'Precisión artesanal', desc: 'Cada pieza pasa por un control de calidad.' },
 ]
 
 const FAQS = [
   { q: '¿Cómo hago el pedido?', a: 'Elegí tu producto y presioná "Comprar por WhatsApp". Te atendemos personalmente para coordinar pago y envío.' },
-  { q: '¿Hacen envíos a todo el país?', a: 'Sí. Coordinamos el envío por correo y despachamos con embalaje reforzado.' },
+  { q: '¿Hacen envíos a todo el país?', a: 'Por el momento solo hacemos envios en Villa Mercedes. Pero mas adelante lanzaremos pedidos para todo el pais.' },
   { q: '¿Los mates vienen listos para usar?', a: 'Sí. Recomendamos curar el mate siguiendo nuestra guía de cuidados para potenciar su sabor.' },
 ]
 
@@ -117,8 +117,6 @@ function ProductoDetalle({ id }) {
         `*Orden #${orderNumber}*\n` +
         `*${product.name}*\n` +
         `Precio: $${buyPrice.toLocaleString('es-AR')}\n` +
-        `Cliente: ${formData.customer_name}\n` +
-        `Teléfono: ${formData.customer_phone}\n\n` +
         `¿Confirmamos el pedido?`
       )
 
