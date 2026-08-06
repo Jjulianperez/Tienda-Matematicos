@@ -279,6 +279,15 @@ body {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.input-search {
+  padding-left: 3rem;
+  padding-right: 3rem;
+}
+
+.input-select {
+  padding-right: 2.5rem;
+}
+
 .input-light {
   background: #f7f2e8;
   border: 1px solid #e8e2d5;

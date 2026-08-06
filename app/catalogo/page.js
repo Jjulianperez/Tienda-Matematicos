@@ -146,12 +146,14 @@ function CatalogoContent() {
           <div className="flex flex-col sm:flex-row gap-4 mb-10 sm:mb-14">
             {/* Buscador */}
             <div className="relative flex-1 group">
-              <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-primary-light transition-colors" size={18} />
+              <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center">
+                <HiOutlineMagnifyingGlass className="text-white/30 group-focus-within:text-primary-light transition-colors" size={18} />
+              </div>
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar por nombre, categoría..."
-                className="input-dark h-12 pl-12 pr-12 w-full bg-white/5 border border-white/10 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder-white/30"
+                className="input-dark input-search h-12 w-full bg-white/5 border border-white/10 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder-white/30"
               />
               {search && (
                 <button
@@ -170,7 +172,7 @@ function CatalogoContent() {
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value)}
-                  className="input-dark h-12 w-full cursor-pointer appearance-none pr-10 bg-white/5 border border-white/10 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="input-dark input-select h-12 w-full cursor-pointer appearance-none bg-white/5 border border-white/10 focus:border-primary focus:ring-2 focus:ring-primary/20"
                 >
                   {SORTS.map(s => (
                     <option key={s.value} value={s.value} className="bg-graphite">{s.label}</option>
