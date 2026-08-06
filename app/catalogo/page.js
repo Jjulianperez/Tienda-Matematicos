@@ -166,21 +166,35 @@ function CatalogoContent() {
 
             {/* Selector orden + Botón filtros mobile */}
             <div className="flex items-center gap-3 sm:w-auto w-full">
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                className="input-dark h-12 sm:w-56 w-full cursor-pointer bg-white/5 border border-white/10 focus:border-primary focus:ring-2 focus:ring-primary/20 appearance-none bg-no-repeat bg-right pr-10"
-                style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A86A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E\")", backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem' }}
-              >
-                {SORTS.map(s => (
-                  <option key={s.value} value={s.value} className="bg-graphite">{s.label}</option>
-                ))}
-              </select>
+              <div className="relative w-full sm:w-56">
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  className="input-dark h-12 w-full cursor-pointer appearance-none pr-10 bg-white/5 border border-white/10 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                >
+                  {SORTS.map(s => (
+                    <option key={s.value} value={s.value} className="bg-graphite">{s.label}</option>
+                  ))}
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#94A86A"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
 
               {/* Botón filtros mobile */}
               <button
                 onClick={() => setShowMobileFilters(!showMobileFilters)}
-                className={`sm:hidden flex items-center gap-2 px-4 py-3 rounded-lg border transition-all ${
+                className={`sm:hidden shrink-0 h-12 px-4 inline-flex items-center justify-center gap-2 rounded-xl border transition-all ${
                   hasFilters || showMobileFilters
                     ? 'bg-primary/10 border-primary/30 text-primary-light'
                     : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:border-white/20'

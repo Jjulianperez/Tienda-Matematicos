@@ -118,39 +118,39 @@ export default function Header() {
             </div>
           </div>
         </div>
+
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.nav
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="lg:hidden bg-carbon/95 backdrop-blur-md border-t border-white/5 overflow-hidden"
+            >
+              <div className="px-4 py-4 space-y-1.5">
+                {[
+                  { label: 'Inicio', href: '/' },
+                  { label: 'Catálogo', href: '/catalogo' },
+                  { label: 'Mates', href: '/catalogo?categoria=mates' },
+                  { label: 'Termos', href: '/catalogo?categoria=termos' },
+                  { label: 'Panel Admin', href: '/admin/dashboard' },
+                ].map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-4 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </motion.nav>
+          )}
+        </AnimatePresence>
       </header>
 
       <CartSidebar />
-
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.nav
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-carbon/95 backdrop-blur-md border-t border-white/5 overflow-hidden"
-          >
-            <div className="px-4 py-4 space-y-1.5">
-              {[
-                { label: 'Inicio', href: '/' },
-                { label: 'Catálogo', href: '/catalogo' },
-                { label: 'Mates', href: '/catalogo?categoria=mates' },
-                { label: 'Termos', href: '/catalogo?categoria=termos' },
-                { label: 'Panel Admin', href: '/admin/dashboard' },
-              ].map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  onClick={() => setMenuOpen(false)}
-                  className="block px-4 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
     </>
   )
 }
