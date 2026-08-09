@@ -4,35 +4,35 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { HiOutlineCube, HiOutlineShoppingBag, HiOutlineClipboard, HiOutlineExclamationTriangle, HiOutlineArrowRight } from 'react-icons/hi2'
 import AdminLayout from '@/components/admin/AdminLayout'
+import LoadingModal from '@/components/ui/LoadingModal'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ products: 0, orders: 0, pending: 0, lowStock: 0 })
   const [recentOrders, setRecentOrders] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
 
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(products => {
+    const loadData = async () => {
+      try {
+        const [productsRes, ordersRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/orders', { headers: { Authorization: `Bearer ${token}` } })
+        ])
+        const [products, orders] = await Promise.all([productsRes.json(), ordersRes.json()])
+        
         const lowStock = products.filter(p => p.stock !== null && p.stock > 0 && p.stock <= 5).length
-        setStats(s => ({ ...s, products: products.length, lowStock }))
-      })
-      .catch(() => {})
-
-    fetch('/api/orders', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => res.json())
-      .then(orders => {
-        setStats(s => ({
-          ...s,
-          orders: orders.length,
-          pending: orders.filter(o => o.status === 'pending').length,
-        }))
+        setStats({ products: products.length, orders: orders.length, pending: orders.filter(o => o.status === 'pending').length, lowStock })
         setRecentOrders(orders.slice(0, 5))
-      })
-      .catch(() => {})
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
 
   const cards = [
@@ -79,6 +79,7 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout title="Dashboard">
+      <LoadingModal open={loading} message="Cargando dashboard..." />
       <div className="p-4 sm:p-8 lg:p-10">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-10">
           {cards.map(card => (

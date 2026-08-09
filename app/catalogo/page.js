@@ -8,6 +8,8 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ProductGrid from '@/components/ProductGrid'
 import GeometricDecor from '@/components/ui/GeometricDecor'
+import SortSelect from '@/components/ui/SortSelect'
+import LoadingModal from '@/components/ui/LoadingModal'
 import { HiOutlineMagnifyingGlass, HiOutlineXMark, HiOutlineAdjustmentsHorizontal } from 'react-icons/hi2'
 
 const SORTS = [
@@ -127,6 +129,7 @@ function CatalogoContent() {
       <Header />
       <main className="flex-1 bg-carbon min-h-screen relative">
         <GeometricDecor variant="blueprint" className="absolute inset-0 w-full h-full opacity-30" />
+        <LoadingModal open={loading} message="Cargando catálogo..." />
         <div className="relative container-page py-16 sm:py-20">
           {/* Hero / Descripción */}
           <header className="mb-14 sm:mb-20">
@@ -168,30 +171,7 @@ function CatalogoContent() {
 
             {/* Selector orden + Botón filtros mobile */}
             <div className="flex items-center gap-3 sm:w-auto w-full">
-              <div className="relative w-full sm:w-56">
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value)}
-                  className="input-dark input-select h-12 w-full cursor-pointer appearance-none bg-white/5 border border-white/10 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                >
-                  {SORTS.map(s => (
-                    <option key={s.value} value={s.value} className="bg-graphite">{s.label}</option>
-                  ))}
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#94A86A"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
+              <SortSelect options={SORTS} value={sort} onChange={setSort} />
 
               {/* Botón filtros mobile */}
               <button

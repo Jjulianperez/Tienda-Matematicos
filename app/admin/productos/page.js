@@ -6,6 +6,7 @@ import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutli
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Confirm, useToast } from '@/components/Modal'
 import FormModal from '@/components/admin/FormModal'
+import LoadingModal from '@/components/ui/LoadingModal'
 import { Field, TextInput, TextArea, Select, Toggle, Tabs, SectionCard, FormActions, inputCls } from '@/components/admin/fields'
 
 function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess }) {
@@ -179,14 +180,15 @@ function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess
           >
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
               {form.images.map((img, i) => (
-                <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-white/5 border border-white/10 group">
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-white/5 border border-white/10">
                   <img src={img} alt="" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removeImage(i)}
-                    className="absolute top-1.5 right-1.5 p-1 rounded-md bg-black/70 text-white/80 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-1.5 right-1.5 p-2 rounded-lg bg-black/85 text-white hover:bg-black border border-white/20 shadow-md transition-colors"
+                    aria-label={`Quitar imagen ${i + 1}`}
                   >
-                    <HiOutlineXMark size={14} />
+                    <HiOutlineXMark size={16} />
                   </button>
                   {i === 0 && (
                     <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 badge badge-geo">Principal</span>
@@ -246,6 +248,7 @@ export default function AdminProductos() {
   const [showForm, setShowForm] = useState(false)
   const [search, setSearch] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, product: null })
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
   const { show: showToast } = useToast()
 
@@ -256,15 +259,27 @@ export default function AdminProductos() {
       return
     }
 
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(setProducts)
-      .catch(() => {})
+    const loadData = async () => {
+      setLoading(true)
+      try {
+        const [productsRes, categoriesRes] = await Promise.all([
+          fetch('/api/products'),
+          fetch('/api/categories')
+        ])
+        const [productsData, categoriesData] = await Promise.all([
+          productsRes.json(),
+          categoriesRes.json()
+        ])
+        setProducts(productsData)
+        setCategories(categoriesData)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-    fetch('/api/categories')
-      .then(res => res.json())
-      .then(setCategories)
-      .catch(() => {})
+    loadData()
   }, [router])
 
   const handleDelete = (product) => {
@@ -309,6 +324,7 @@ export default function AdminProductos() {
 
   return (
     <AdminLayout title="Productos">
+      <LoadingModal open={loading} message="Cargando productos y categorías..." />
       <div className="p-4 sm:p-8 lg:p-10">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-8">
           <input
