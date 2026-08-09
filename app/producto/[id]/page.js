@@ -26,8 +26,8 @@ import {
 import { getOptimizedUrl } from '@/lib/images'
 import { computeSalePrice, discountPercentOf } from '@/lib/pricing'
 import { useCart } from '@/context/CartContext'
-
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER
+import { useSiteSettings } from '@/hooks/useSiteSettings'
+import { formatMessage } from '@/lib/site-settings'
 
 const SPECS = [
   { key: 'Origen', value: 'Argentina' },
@@ -55,6 +55,7 @@ export default function ProductoDetallePage() {
 function ProductoDetalle({ id }) {
   const router = useRouter()
   const { addItem, openCart } = useCart()
+  const siteSettings = useSiteSettings()
   const [product, setProduct] = useState(null)
   const [related, setRelated] = useState([])
   const [loading, setLoading] = useState(true)
@@ -75,10 +76,10 @@ function ProductoDetalle({ id }) {
   const discountPct = product?.promo ? discountPercentOf(productPrice, salePrice) : 0
 
   const whatsappMessage = encodeURIComponent(
-    `Hola, vengo del catálogo de MateMáticos.\n\nQuiero consultar por:\n` +
-    `*${product?.name}*\n` +
-    `Precio: $${product ? buyPrice.toLocaleString('es-AR') : ''}\n\n` +
-    `¿Está disponible?`
+    formatMessage(siteSettings.messages.wa_consult, {
+      name: product?.name,
+      price: product ? buyPrice.toLocaleString('es-AR') : '',
+    })
   )
 
   const handleBuy = async (e) => {
@@ -115,19 +116,18 @@ function ProductoDetalle({ id }) {
       const orderNumber = result.order_number
 
       const orderMessage = encodeURIComponent(
-        `Hola, vengo del catálogo de MateMáticos.\n\n` +
-        `Quiero confirmar mi pedido:\n` +
-        `*Orden #${orderNumber}*\n` +
-        `*${product.name}*\n` +
-        `Precio: $${buyPrice.toLocaleString('es-AR')}\n` +
-        `¿Confirmamos el pedido?`
+        formatMessage(siteSettings.messages.wa_confirm, {
+          order_number: orderNumber,
+          name: product.name,
+          price: buyPrice.toLocaleString('es-AR'),
+        })
       )
 
       setShowBuyModal(false)
       setFormData({ customer_name: '', customer_phone: '' })
 
       // Usar window.location.assign para evitar bloqueo de popup
-      window.location.assign(`https://wa.me/${WHATSAPP_NUMBER}?text=${orderMessage}`)
+      window.location.assign(`https://wa.me/${siteSettings.whatsapp_number}?text=${orderMessage}`)
 
     } catch (err) {
       setBuyError(err.message)
@@ -318,7 +318,13 @@ function ProductoDetalle({ id }) {
                 )}
                 {product.promo && (
                   <span className="inline-block mt-3 badge badge-oferta">
-                    {discountPct}% OFF{isThresholdPromo ? ` en ${product.promo.min_quantity}+` : ''}
+                    {formatMessage(
+                      isThresholdPromo ? siteSettings.messages.promo_badge_qty : siteSettings.messages.promo_badge,
+                      {
+                        pct: discountPct,
+                        min: product.promo.min_quantity,
+                      }
+                    )}
                   </span>
                 )}
                 <p className="text-xs text-white/30 mt-2">
@@ -364,7 +370,7 @@ function ProductoDetalle({ id }) {
                   </>
                 ) : (
                   <a
-                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`}
+                    href={`https://wa.me/${siteSettings.whatsapp_number}?text=${whatsappMessage}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-outline flex-1 py-4"

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import GeometricDecor from './ui/GeometricDecor'
+import WhatsAppLink from './ui/WhatsAppLink'
 
 export default function Footer() {
   const columns = [
@@ -27,7 +28,7 @@ export default function Footer() {
     {
       title: 'Contacto',
       links: [
-        { label: 'WhatsApp', href: 'https://wa.me/542657583046' },
+        { label: 'WhatsApp', whatsapp: true },
         { label: 'Instagram', href: '#' },
         { label: 'Email', href: 'mailto:hola@matematicos.com' },
       ],
@@ -71,14 +72,20 @@ export default function Footer() {
               <ul className="space-y-4">
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      target={link.href.startsWith('http') ? '_blank' : undefined}
-                      rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                      className="text-sm text-white/40 hover:text-primary-light transition-colors"
-                    >
-                      {link.label}
-                    </Link>
+                    {link.whatsapp ? (
+                      <WhatsAppLink className="text-sm text-white/40 hover:text-primary-light transition-colors">
+                        {link.label}
+                      </WhatsAppLink>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        target={link.href.startsWith('http') ? '_blank' : undefined}
+                        rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                        className="text-sm text-white/40 hover:text-primary-light transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

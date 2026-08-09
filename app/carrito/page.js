@@ -20,8 +20,8 @@ import {
 } from 'react-icons/hi2'
 import { getOptimizedUrl } from '@/lib/images'
 import { useCart, getEffectiveUnitPrice } from '@/context/CartContext'
-
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER
+import { useSiteSettings } from '@/hooks/useSiteSettings'
+import { formatMessage } from '@/lib/site-settings'
 
 function categoryQty(items, categoryId) {
   return items
@@ -124,6 +124,7 @@ function CartItem({ item, unitPrice, isDiscounted, promoNote, onUpdate, onRemove
 
 export default function CarritoPage() {
   const { state, removeItem, updateQuantity, clearCart, subtotal, totalItems } = useCart()
+  const siteSettings = useSiteSettings()
   const [formData, setFormData] = useState({ customer_name: '', customer_phone: '' })
   const [buying, setBuying] = useState(false)
   const [buyError, setBuyError] = useState('')
@@ -185,19 +186,18 @@ export default function CarritoPage() {
       })
 
       const orderMessage = encodeURIComponent(
-        `Hola, vengo del carrito de MateMáticos.\n\n` +
-        `Quiero confirmar mi pedido:\n` +
-        `*Orden #${result.order_number}*\n\n` +
-        lines.join('\n') +
-        `\n\n*Subtotal: $${subtotal.toLocaleString('es-AR')}*` +
-        `\n\nCliente: ${formData.customer_name}` +
-        `\nTeléfono: ${formData.customer_phone}` +
-        `\n\n¿Confirmamos el pedido?`
+        formatMessage(siteSettings.messages.wa_cart, {
+          order_number: result.order_number,
+          items: lines.join('\n'),
+          subtotal: subtotal.toLocaleString('es-AR'),
+          customer_name: formData.customer_name,
+          customer_phone: formData.customer_phone,
+        })
       )
 
       clearCart()
       setFormData({ customer_name: '', customer_phone: '' })
-      window.location.assign(`https://wa.me/${WHATSAPP_NUMBER}?text=${orderMessage}`)
+      window.location.assign(`https://wa.me/${siteSettings.whatsapp_number}?text=${orderMessage}`)
     } catch (err) {
       setBuyError(err.message)
       setBuying(false)

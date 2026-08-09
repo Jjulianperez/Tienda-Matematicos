@@ -88,3 +88,10 @@ ON CONFLICT (slug) DO NOTHING;
 
 -- Después de crear las tablas, crear el admin con:
 -- node scripts/create-admin.js admin@matematicos.com tu-contraseña
+
+-- Configuraciones editables desde el panel admin
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);

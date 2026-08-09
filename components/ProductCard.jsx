@@ -6,6 +6,8 @@ import { HiOutlineArrowTopRightOnSquare, HiOutlineEye, HiOutlinePlus } from 'rea
 import { getOptimizedUrl } from '@/lib/images'
 import { useCart } from '@/context/CartContext'
 import { computeSalePrice, discountPercentOf } from '@/lib/pricing'
+import { useSiteSettings } from '@/hooks/useSiteSettings'
+import { formatMessage } from '@/lib/site-settings'
 
 function getBadges(product) {
   const badges = []
@@ -19,6 +21,7 @@ export default function ProductCard({ product, onClick }) {
   const [imgLoaded, setImgLoaded] = useState(false)
   const badges = getBadges(product)
   const { addItem, openCart } = useCart()
+  const siteSettings = useSiteSettings()
 
   const promo = product.promo
   const fullPrice = Number(product.price)
@@ -88,7 +91,10 @@ export default function ProductCard({ product, onClick }) {
 
         {promo && (
           <span className="absolute bottom-4 left-4 badge badge-oferta shadow-lg shadow-primary/20">
-            {discountPct}% OFF{isThreshold ? ` en ${promo.min_quantity}+` : ''}
+            {formatMessage(isThreshold ? siteSettings.messages.promo_badge_qty : siteSettings.messages.promo_badge, {
+              pct: discountPct,
+              min: promo.min_quantity,
+            })}
           </span>
         )}
 

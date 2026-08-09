@@ -8,6 +8,7 @@ import Footer from '@/components/Footer'
 import ProductCard from '@/components/ProductCard'
 import ComboCard from '@/components/ComboCard'
 import GeometricDecor from '@/components/ui/GeometricDecor'
+import WhatsAppLink from '@/components/ui/WhatsAppLink'
 import { fadeInUp, staggerCards } from '@/lib/animations'
 import { HiOutlineArrowRight } from 'react-icons/hi2'
 
@@ -112,14 +113,9 @@ export default function Home() {
                 Ver catálogo
                 <HiOutlineArrowRight size={18} />
               </Link>
-              <a
-                href="https://wa.me/542657583046"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-outline"
-              >
+              <WhatsAppLink className="btn-outline">
                 Consultar por WhatsApp
-              </a>
+              </WhatsAppLink>
             </div>
           </div>
 

@@ -10,6 +10,7 @@ import ProductGrid from '@/components/ProductGrid'
 import GeometricDecor from '@/components/ui/GeometricDecor'
 import SortSelect from '@/components/ui/SortSelect'
 import LoadingModal from '@/components/ui/LoadingModal'
+import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { HiOutlineMagnifyingGlass, HiOutlineXMark, HiOutlineAdjustmentsHorizontal } from 'react-icons/hi2'
 
 const SORTS = [
@@ -37,6 +38,7 @@ function CategoryChip({ name, slug, active, onClick }) {
 function CatalogoContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const siteSettings = useSiteSettings()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoria') || '')
@@ -196,7 +198,7 @@ function CatalogoContent() {
                 onClick={handleCategory}
               />
               <CategoryChip
-                name="En oferta"
+                name={siteSettings.messages.offer_label}
                 slug="oferta"
                 active={onlyOffers}
                 onClick={toggleOffers}
@@ -238,7 +240,7 @@ function CatalogoContent() {
                   onClick={handleCategory}
                 />
                 <CategoryChip
-                  name="En oferta"
+                  name={siteSettings.messages.offer_label}
                   slug="oferta"
                   active={onlyOffers}
                   onClick={toggleOffers}
