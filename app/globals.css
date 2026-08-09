@@ -397,6 +397,18 @@ body {
   animation: drawLine 2s ease-out forwards;
 }
 
+/* ---------- Carrusel (marquee) ---------- */
+@keyframes marquee-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: marquee-scroll 32s linear infinite;
+}
+
 /* ---------- Navbar ---------- */
 .navbar {
   transition: background 0.3s ease, box-shadow 0.3s ease;

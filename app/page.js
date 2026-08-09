@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
@@ -29,6 +29,8 @@ const INGREDIENTES = [
   { label: 'Temperatura ideal', formula: 'T=80°C' },
   { label: 'Compañía', formula: 'C' },
 ]
+
+const FRANJA_ITEMS = ['∫ Precisión', '∑ Tradición', 'π Geometría', '∞ Calidad', 'Δ Diseño']
 
 const PASOS = [
   {
@@ -129,16 +131,23 @@ export default function Home() {
         {/* FRANJA DE PRECISIÓN */}
         <section className="bg-primary-dark/20 border-y border-white/5 py-7 relative overflow-hidden">
           <GeometricDecor variant="grid" className="absolute inset-0 w-full h-full opacity-50" />
-          <div className="relative container-page flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-white/40 font-mono text-xs uppercase tracking-widest">
-            <span>∫ Precisión</span>
-            <span className="text-primary-light">•</span>
-            <span>∑ Tradición</span>
-            <span className="text-primary-light">•</span>
-            <span>π Geometría</span>
-            <span className="text-primary-light">•</span>
-            <span>∞ Calidad</span>
-            <span className="text-primary-light">•</span>
-            <span>Δ Diseño</span>
+          <div className="relative">
+            <div className="marquee-track text-white/40 font-mono text-xs uppercase tracking-widest">
+              {[0, 1].map(dup => (
+                <div
+                  key={dup}
+                  aria-hidden={dup === 1}
+                  className="flex items-center shrink-0 gap-x-10"
+                >
+                  {FRANJA_ITEMS.map((item, i) => (
+                    <Fragment key={i}>
+                      <span>{item}</span>
+                      <span className="text-primary-light">•</span>
+                    </Fragment>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
