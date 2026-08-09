@@ -19,7 +19,7 @@ const SORTS = [
   { value: 'precio-desc', label: 'Mayor precio' },
 ]
 
-function CategoryChip({ name, slug, count, active, onClick }) {
+function CategoryChip({ name, slug, active, onClick }) {
   return (
     <button
       onClick={() => onClick(slug)}
@@ -30,11 +30,6 @@ function CategoryChip({ name, slug, count, active, onClick }) {
       }`}
     >
       {name}
-      {count !== undefined && (
-        <span className={`text-[10px] px-2 py-0.5 rounded-full ${active ? 'bg-primary/30 text-white' : 'bg-white/10 text-white/50'}`}>
-          {count}
-        </span>
-      )}
     </button>
   )
 }
@@ -197,30 +192,24 @@ function CatalogoContent() {
               <CategoryChip
                 name="Todos"
                 slug=""
-                count={categories.reduce((acc, c) => acc + (products.filter(p => p.categories?.slug === c.slug).length), 0)}
                 active={!selectedCategory && !onlyOffers}
                 onClick={handleCategory}
               />
               <CategoryChip
                 name="En oferta"
                 slug="oferta"
-                count={products.filter(p => p.promo).length}
                 active={onlyOffers}
                 onClick={toggleOffers}
               />
-              {categories.map(cat => {
-                const count = products.filter(p => p.categories?.slug === cat.slug).length
-                return (
-                  <CategoryChip
-                    key={cat.id}
-                    name={cat.name}
-                    slug={cat.slug}
-                    count={count}
-                    active={selectedCategory === cat.slug}
-                    onClick={handleCategory}
-                  />
-                )
-              })}
+              {categories.map(cat => (
+                <CategoryChip
+                  key={cat.id}
+                  name={cat.name}
+                  slug={cat.slug}
+                  active={selectedCategory === cat.slug}
+                  onClick={handleCategory}
+                />
+              ))}
             </div>
           </div>
 
@@ -245,30 +234,24 @@ function CatalogoContent() {
                 <CategoryChip
                   name="Todos"
                   slug=""
-                  count={products.length}
                   active={!selectedCategory && !onlyOffers}
                   onClick={handleCategory}
                 />
                 <CategoryChip
                   name="En oferta"
                   slug="oferta"
-                  count={products.filter(p => p.promo).length}
                   active={onlyOffers}
                   onClick={toggleOffers}
                 />
-                {categories.map(cat => {
-                  const count = products.filter(p => p.categories?.slug === cat.slug).length
-                  return (
-                    <CategoryChip
-                      key={cat.id}
-                      name={cat.name}
-                      slug={cat.slug}
-                      count={count}
-                      active={selectedCategory === cat.slug}
-                      onClick={handleCategory}
-                    />
-                  )
-                })}
+                {categories.map(cat => (
+                  <CategoryChip
+                    key={cat.id}
+                    name={cat.name}
+                    slug={cat.slug}
+                    active={selectedCategory === cat.slug}
+                    onClick={handleCategory}
+                  />
+                ))}
               </div>
             </motion.div>
           )}

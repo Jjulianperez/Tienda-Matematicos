@@ -18,6 +18,11 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata = {
   title: "MateMáticos - La fórmula del mate perfecto",
   description: "Descubrí la fórmula del mate perfecto. Mates, bombillas, termos y accesorios seleccionados con precisión matemática.",
+  icons: {
+    icon: "/assets/brand/favicon.png",
+    shortcut: "/assets/brand/favicon.png",
+    apple: "/assets/brand/favicon.png",
+  },
 };
 
 export default function RootLayout({ children }) {

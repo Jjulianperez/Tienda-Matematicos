@@ -20,10 +20,12 @@ import {
   HiOutlineCheckCircle,
   HiOutlineUser,
   HiOutlinePhone,
+  HiOutlinePlus,
   HiOutlineExclamationCircle,
 } from 'react-icons/hi2'
 import { getOptimizedUrl } from '@/lib/images'
 import { computeSalePrice, discountPercentOf } from '@/lib/pricing'
+import { useCart } from '@/context/CartContext'
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER
 
@@ -52,6 +54,7 @@ export default function ProductoDetallePage() {
 
 function ProductoDetalle({ id }) {
   const router = useRouter()
+  const { addItem, openCart } = useCart()
   const [product, setProduct] = useState(null)
   const [related, setRelated] = useState([])
   const [loading, setLoading] = useState(true)
@@ -131,6 +134,29 @@ function ProductoDetalle({ id }) {
     } finally {
       setBuying(false)
     }
+  }
+
+  const handleAddToCart = () => {
+    if (!product || product.stock <= 0) return
+    addItem({
+      productId: product.id,
+      type: 'product',
+      name: product.name,
+      price: productPrice,
+      image: product.images?.[0],
+      quantity: 1,
+      stock: product.stock,
+      categoryId: product.category_id,
+      promo: product.promo
+        ? {
+            discount_type: product.promo.discount_type,
+            discount_value: product.promo.discount_value,
+            min_quantity: product.promo.min_quantity,
+            category_id: product.promo.category_id,
+          }
+        : null,
+    })
+    openCart()
   }
 
   useEffect(() => {
@@ -319,13 +345,23 @@ function ProductoDetalle({ id }) {
               {/* CTA */}
               <div className="flex flex-col sm:flex-row gap-4 mt-10">
                 {product.stock > 0 ? (
-                  <button
-                    onClick={() => setShowBuyModal(true)}
-                    className="btn-primary flex-1 py-4"
-                  >
-                    <HiOutlineShoppingBag size={20} />
-                    Comprar por WhatsApp
-                  </button>
+                  <>
+                    <button
+                      onClick={handleAddToCart}
+                      className="btn-outline flex-1 py-4"
+                      aria-label="Agregar al carrito"
+                    >
+                      <HiOutlinePlus size={20} />
+                      Agregar al carrito
+                    </button>
+                    <button
+                      onClick={() => setShowBuyModal(true)}
+                      className="btn-primary flex-1 py-4"
+                    >
+                      <HiOutlineShoppingBag size={20} />
+                      Comprar por WhatsApp
+                    </button>
+                  </>
                 ) : (
                   <a
                     href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`}
