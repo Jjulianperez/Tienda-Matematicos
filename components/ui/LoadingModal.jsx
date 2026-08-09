@@ -1,10 +1,18 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { createPortal } from 'react-dom'
 
 export default function LoadingModal({ open, message = 'Cargando productos...' }) {
-  if (!open || typeof window === 'undefined') return null
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    const id = setTimeout(() => setMounted(true), 0)
+    return () => clearTimeout(id)
+  }, [])
+
+  if (!open || !mounted) return null
 
   return createPortal(
     <motion.div
