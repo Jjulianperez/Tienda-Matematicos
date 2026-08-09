@@ -45,15 +45,18 @@ export default function FormModal({ open, onClose, title, subtitle, children, fo
           />
           <motion.div
             key="panel"
-            className={`fixed inset-y-0 right-0 z-50 w-full ${maxWidth} h-full bg-carbon border-l border-white/10 shadow-2xl flex flex-col`}
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pointer-events-none"
             role="dialog"
             aria-modal="true"
             aria-label={title}
           >
+            <motion.div
+              className={`relative w-full ${maxWidth} max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)] flex flex-col bg-carbon border border-white/10 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto`}
+              initial={{ opacity: 0, scale: 0.96, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 16 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+            >
             <header className="flex items-start justify-between gap-4 px-6 sm:px-8 py-5 border-b border-white/10 shrink-0">
               <div className="min-w-0">
                 <h2 className="font-display font-semibold text-xl text-white">{title}</h2>
@@ -77,6 +80,7 @@ export default function FormModal({ open, onClose, title, subtitle, children, fo
                 {footer}
               </footer>
             )}
+            </motion.div>
           </motion.div>
         </>
       )}

@@ -271,12 +271,13 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
 
               <SectionCard title="Foto" description="Se muestra en catálogo y home">
                 {form.image ? (
-                  <div className="relative aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10 group">
+                  <div className="relative aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10">
                     <img src={form.image} alt="" className="w-full h-full object-cover" />
                     <button
                       type="button"
                       onClick={() => setForm({ ...form, image: '' })}
-                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/70 text-white/80 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-2 right-2 p-2 rounded-lg bg-black/85 text-white hover:bg-black border border-white/20 shadow-md transition-colors"
+                      aria-label="Quitar imagen"
                     >
                       <HiOutlineXMark size={16} />
                     </button>
