@@ -48,15 +48,26 @@ function TypeOption({ active, onClick, icon: Icon, title, desc }) {
     <button
       type="button"
       onClick={onClick}
-      className={`text-left p-4 rounded-xl border-2 transition-all ${
+      aria-pressed={active}
+      className={`relative text-left p-4 sm:p-5 rounded-xl border-2 transition-all flex flex-col gap-2.5 h-full ${
         active
           ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10'
-          : 'border-white/10 bg-white/5 hover:border-white/25'
+          : 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/[0.07]'
       }`}
     >
-      <Icon size={20} className={`mb-2.5 ${active ? 'text-primary-light' : 'text-white/40'}`} />
-      <span className="block text-white font-semibold text-sm">{title}</span>
-      <span className="block text-[10px] text-white/40 mt-1 leading-relaxed">{desc}</span>
+      <span className="flex items-center gap-2.5">
+        <span
+          className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center transition-colors ${
+            active ? 'bg-primary/20 text-primary-light' : 'bg-white/5 text-white/40'
+          }`}
+        >
+          <Icon size={18} />
+        </span>
+        <span className={`font-semibold text-sm sm:text-base leading-tight ${active ? 'text-primary-light' : 'text-white'}`}>
+          {title}
+        </span>
+      </span>
+      <span className={`text-xs leading-relaxed ${active ? 'text-white/60' : 'text-white/40'}`}>{desc}</span>
     </button>
   )
 }
@@ -242,6 +253,7 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
       open
       onClose={onCancel}
       title={promo ? 'Editar promoción' : 'Nueva promoción'}
+      maxWidth="max-w-3xl"
       subtitle={
         isCombo
           ? 'Varios productos juntos a un precio fijo'
@@ -270,7 +282,11 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
         {tab === 'info' && (
           <div className="space-y-6">
             <div className="grid lg:grid-cols-2 gap-6">
-              <SectionCard title="Tipo de promoción" description="¿Qué querés crear?">
+              <SectionCard
+                title="Tipo de promoción"
+                description="¿Qué querés crear?"
+                className="lg:col-span-2"
+              >
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <TypeOption
                     active={isCombo}
@@ -436,8 +452,8 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
               <>
                 <SectionCard title="Aplicar la oferta a" description="Elegí sobre qué productos rige el descuento" icon={HiOutlineShoppingBag}>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="grid grid-cols-2 gap-2 sm:w-64 shrink-0">
+                    <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+                      <div className="grid grid-cols-2 gap-2 lg:w-64 shrink-0">
                         <button
                           type="button"
                           onClick={() => setTarget('product')}
