@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import Header from '@/components/Header'
@@ -128,6 +128,25 @@ export default function CarritoPage() {
   const [formData, setFormData] = useState({ customer_name: '', customer_phone: '' })
   const [buying, setBuying] = useState(false)
   const [buyError, setBuyError] = useState('')
+  const [summaryVisible, setSummaryVisible] = useState(false)
+
+  useEffect(() => {
+    const el = document.getElementById('resumen-pedido')
+    if (!el || state.items.length === 0) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setSummaryVisible(entry.isIntersecting),
+      { rootMargin: '0px 0px -90px 0px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [state.items.length])
+
+  const scrollToSummary = () => {
+    document.getElementById('resumen-pedido')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const showStickyBar = state.items.length > 0 && !summaryVisible
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -209,23 +228,26 @@ export default function CarritoPage() {
       <Header />
 
       <section className="relative py-16 sm:py-20 overflow-hidden">
-        <GeometricDecor />
+        <GeometricDecor variant="blueprint" className="absolute inset-0 w-full h-full opacity-30" />
         <div className="container-page relative z-10">
           <div className="flex items-center gap-2 text-xs text-white/40 mb-3">
             <Link href="/" className="hover:text-primary-light transition-colors">Inicio</Link>
             <span>/</span>
             <span className="text-primary-light">Carrito</span>
           </div>
-          <h1 className="font-display font-bold text-4xl sm:text-5xl text-white">
-            Tu <span className="text-primary-light">carrito</span>
-          </h1>
+          <div className="flex flex-wrap items-center gap-4">
+            <h1 className="font-display font-bold text-4xl sm:text-5xl text-white">
+              Tu <span className="text-primary-light">carrito</span>
+            </h1>
+            {state.items.length > 0 && <span className="badge badge-stock">{totalItems} {totalItems === 1 ? 'ítem' : 'ítems'}</span>}
+          </div>
           <p className="text-white/50 mt-3 max-w-xl">
             Revisá tu selección y confirmá el pedido por WhatsApp. Te atendemos personalmente.
           </p>
         </div>
       </section>
 
-      <section className="pb-20 sm:pb-28">
+      <section className="pb-32 sm:pb-36 lg:pb-28">
         <div className="container-page">
           {state.items.length === 0 ? (
             <div className="card-dark rounded-2xl p-12 sm:p-16 text-center">
@@ -277,17 +299,28 @@ export default function CarritoPage() {
                 </Link>
               </div>
 
-              <aside className="card-dark rounded-2xl p-6 sm:p-7 sticky top-24">
-                <h2 className="font-display font-semibold text-lg text-white mb-5">Confirmar pedido</h2>
+              <aside id="resumen-pedido" className="card-dark rounded-2xl p-6 sm:p-7 sticky top-24">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="font-display font-semibold text-lg text-white">Confirmar pedido</h2>
+                  <span className="badge badge-geo">Checkout</span>
+                </div>
 
-                <div className="space-y-2 mb-6 pb-6 border-b border-white/10">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/50">Subtotal ({totalItems} ítems)</span>
-                    <span className="text-white font-medium">${subtotal.toLocaleString('es-AR')}</span>
+                <div className="mb-6 pb-6 border-b border-white/10">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/50">Subtotal ({totalItems} {totalItems === 1 ? 'ítem' : 'ítems'})</span>
+                      <span className="text-white font-medium">${subtotal.toLocaleString('es-AR')}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/50">Envío</span>
+                      <span className="text-white/40 text-xs">Se coordina por WhatsApp</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/50">Envío</span>
-                    <span className="text-white/40 text-xs">Se coordina por WhatsApp</span>
+                  <div className="flex items-end justify-between pt-4 mt-4 border-t border-white/10">
+                    <span className="text-sm font-medium text-white/70">Total</span>
+                    <span className="font-display font-bold text-2xl sm:text-3xl text-primary-light">
+                      ${subtotal.toLocaleString('es-AR')}
+                    </span>
                   </div>
                 </div>
 
@@ -297,6 +330,7 @@ export default function CarritoPage() {
                     <input
                       type="text"
                       required
+                      autoComplete="name"
                       placeholder="Tu nombre"
                       value={formData.customer_name}
                       onChange={e => setFormData({ ...formData, customer_name: e.target.value })}
@@ -308,6 +342,7 @@ export default function CarritoPage() {
                     <input
                       type="tel"
                       required
+                      autoComplete="tel"
                       placeholder="Tu WhatsApp (ej: 11 1234-5678)"
                       value={formData.customer_phone}
                       onChange={e => setFormData({ ...formData, customer_phone: e.target.value })}
@@ -346,6 +381,28 @@ export default function CarritoPage() {
           )}
         </div>
       </section>
+
+      {showStickyBar && (
+        <div className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t border-white/10 bg-graphite/95 backdrop-blur-md">
+          <div className="container-page flex items-center justify-between gap-4 py-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-white/40">
+                Total ({totalItems} {totalItems === 1 ? 'ítem' : 'ítems'})
+              </p>
+              <p className="font-display font-bold text-xl text-primary-light">
+                ${subtotal.toLocaleString('es-AR')}
+              </p>
+            </div>
+            <button
+              onClick={scrollToSummary}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-primary hover:bg-primary-dark text-white text-sm font-semibold transition-all"
+            >
+              <HiOutlineCheckCircle size={18} />
+              Confirmar
+            </button>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </main>

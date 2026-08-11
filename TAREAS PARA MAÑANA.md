@@ -2,13 +2,6 @@
 
 Lista de pendientes para dejar el trabajo de la tienda **MateMáticos** terminado. Ordenadas por prioridad.
 
-## 1. Aplicar la migración de Supabase (BLOQUEANTE)
-
-- Entrar al SQL Editor del proyecto Supabase `esatyxgwuzsunnlsztqr`.
-- Ejecutar el contenido de `supabase-schema.sql` completo.
-- Verificar que las tablas `promotions` y `promotion_items` existan (hoy dan error PGRST205).
-- Confirmar que las categorías por defecto (mates, bombillas, termos, yerbas, accesorios) quedaron insertadas.
-- Probar un GET a `/api/promotions/public` desde el navegador.
 
 ## 2. Admin y promociones (depende del punto 1)
 
