@@ -95,3 +95,8 @@ CREATE TABLE IF NOT EXISTS settings (
   value JSONB NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Descuentos por peso acumulado
+ALTER TABLE products ADD COLUMN IF NOT EXISTS weight INTEGER CHECK (weight IS NULL OR weight > 0);
+ALTER TABLE promotions ADD COLUMN IF NOT EXISTS kind TEXT DEFAULT 'quantity' CHECK (kind IN ('quantity', 'weight'));
+ALTER TABLE promotions ADD COLUMN IF NOT EXISTS min_weight INTEGER CHECK (min_weight IS NULL OR min_weight > 0);

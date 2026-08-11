@@ -75,6 +75,7 @@ export async function POST(request) {
         category_id: body.category_id,
         images: body.images || [],
         featured: body.featured || false,
+        weight: body.weight ? Number(body.weight) : null,
       })
       .select()
       .single()

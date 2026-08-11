@@ -12,6 +12,7 @@ import {
   HiOutlineInformationCircle,
   HiOutlineCube,
   HiOutlineShoppingBag,
+  HiOutlineScale,
 } from 'react-icons/hi2'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Confirm, useToast } from '@/components/Modal'
@@ -29,6 +30,7 @@ import {
 } from '@/components/admin/fields'
 import ProductSelect from '@/components/admin/ProductSelect'
 import { computeSalePrice } from '@/lib/pricing'
+import { formatWeight } from '@/lib/weight'
 
 function toLocalInput(iso) {
   if (!iso) return ''
@@ -65,11 +67,13 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
     title: promo?.title || '',
     description: promo?.description || '',
     type: promo?.type || 'combo',
+    kind: promo?.kind || 'quantity',
     image: promo?.image || '',
     price: promo?.price ?? '',
     discount_type: promo?.discount_type || 'percent',
     discount_value: promo?.discount_value ?? '',
     min_quantity: promo?.min_quantity ?? 1,
+    min_weight: promo?.min_weight ?? '',
     is_active: promo?.is_active ?? true,
     starts_at: toLocalInput(promo?.starts_at),
     ends_at: toLocalInput(promo?.ends_at),
@@ -82,6 +86,7 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
   const [error, setError] = useState('')
 
   const isCombo = form.type === 'combo'
+  const isWeight = !isCombo && form.kind === 'weight'
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0]
@@ -116,8 +121,8 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
     setForm({ ...form, items })
   }
 
-  const changeType = (type) => {
-    setForm({ ...form, type, items: [emptyItem()] })
+  const changeType = (type, kind = 'quantity') => {
+    setForm({ ...form, type, kind, items: [emptyItem()] })
   }
 
   const setTarget = (value) => {
@@ -151,15 +156,28 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
       return
     }
 
+    if (isWeight && !items[0]?.category_id) {
+      setError('Elegí la categoría sobre la que aplica el descuento por peso')
+      setSaving(false)
+      return
+    }
+    if (isWeight && (!parseInt(form.min_weight) || parseInt(form.min_weight) <= 0)) {
+      setError('Ingresá un peso mínimo válido en gramos')
+      setSaving(false)
+      return
+    }
+
     const body = {
       title: form.title,
       description: form.description,
       type: form.type,
+      kind: isCombo ? 'quantity' : form.kind || 'quantity',
       image: form.image || null,
       price: isCombo ? parseFloat(form.price) : null,
-      discount_type: isCombo ? null : form.discount_type,
+      discount_type: isCombo ? null : isWeight ? 'percent' : form.discount_type,
       discount_value: isCombo ? null : parseFloat(form.discount_value),
-      min_quantity: isCombo ? 1 : parseInt(form.min_quantity) || 1,
+      min_quantity: isCombo || isWeight ? 1 : parseInt(form.min_quantity) || 1,
+      min_weight: isWeight ? parseInt(form.min_weight) || 0 : null,
       is_active: form.is_active,
       starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
       ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
@@ -227,7 +245,9 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
       subtitle={
         isCombo
           ? 'Varios productos juntos a un precio fijo'
-          : 'Descuento por producto o categoría'
+          : isWeight
+            ? 'Descuento por peso acumulado de una categoría'
+            : 'Descuento por producto o categoría'
       }
       footer={
         <FormActions
@@ -251,7 +271,7 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
           <div className="space-y-6">
             <div className="grid lg:grid-cols-2 gap-6">
               <SectionCard title="Tipo de promoción" description="¿Qué querés crear?">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <TypeOption
                     active={isCombo}
                     onClick={() => changeType('combo')}
@@ -260,11 +280,18 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
                     desc="Productos a precio fijo"
                   />
                   <TypeOption
-                    active={!isCombo}
-                    onClick={() => changeType('promo')}
+                    active={!isCombo && form.kind === 'quantity'}
+                    onClick={() => changeType('promo', 'quantity')}
                     icon={HiOutlineShoppingBag}
-                    title="Promoción"
-                    desc="Descuento por cantidad"
+                    title="Por cantidad"
+                    desc="Descuento al llevar N unidades"
+                  />
+                  <TypeOption
+                    active={isWeight}
+                    onClick={() => changeType('promo', 'weight')}
+                    icon={HiOutlineScale}
+                    title="Por peso"
+                    desc="Descuento por peso acumulado"
                   />
                 </div>
               </SectionCard>
@@ -441,7 +468,68 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
                             value={form.items[0]?.product_id || ''}
                             onChange={id => setItem(0, { product_id: id, category_id: '' })}
                           />
-                        ) : (
+) : isWeight ? (
+              <>
+                <SectionCard title="Categoría que aplica" description="El descuento se calcula acumulando el peso de todos los productos de esa categoría, de cualquier marca" icon={HiOutlineShoppingBag}>
+                  <div className="space-y-4 max-w-md">
+                    <Select
+                      label="Categoría"
+                      value={form.items[0]?.category_id || ''}
+                      onChange={e => setItem(0, { category_id: e.target.value, product_id: '' })}
+                    >
+                      <option value="">Seleccionar categoría...</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id} className="bg-graphite">{c.name}</option>
+                      ))}
+                    </Select>
+                    <Field
+                      label="Peso mínimo (gramos)"
+                      hint="Ej: 1000 = 1 kg. Se suma peso × cantidad de cada producto de la categoría."
+                    >
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={form.min_weight}
+                        onChange={e => setForm({ ...form, min_weight: e.target.value })}
+                        placeholder="1000"
+                        className={inputCls}
+                        required
+                      />
+                    </Field>
+                    <p className="text-xs text-white/40">
+                      Preview: desde{' '}
+                      <span className="text-primary-light font-semibold">
+                        {formatWeight(parseInt(form.min_weight) || 0)}
+                      </span>{' '}
+                      acumulados de{' '}
+                      <span className="text-white font-medium">
+                        {categories.find(c => c.id === form.items[0]?.category_id)?.name || '—'}
+                      </span>{' '}
+                      → <span className="text-primary-light font-semibold">{form.discount_value || 0}% OFF</span> en todas las unidades
+                    </p>
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="Descuento" description="Porcentaje que se descuenta sobre el precio de cada unidad" icon={HiOutlineInformationCircle}>
+                  <div className="grid sm:grid-cols-2 gap-6 items-start">
+                    <Field label="Descuento (%)" required>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={form.discount_value}
+                        onChange={e => setForm({ ...form, discount_value: e.target.value })}
+                        placeholder="10"
+                        className={inputCls}
+                        required
+                      />
+                    </Field>
+                  </div>
+                </SectionCard>
+              </>
+            ) : (
                           <Select
                             value={form.items[0]?.category_id || ''}
                             onChange={e => setItem(0, { category_id: e.target.value, product_id: '' })}
@@ -551,11 +639,13 @@ function promoToBody(p) {
     title: p.title,
     description: p.description,
     type: p.type,
+    kind: p.kind || 'quantity',
     image: p.image,
     price: p.price,
     discount_type: p.discount_type,
     discount_value: p.discount_value,
     min_quantity: p.min_quantity || 1,
+    min_weight: p.min_weight || null,
     is_active: !p.is_active,
     starts_at: p.starts_at,
     ends_at: p.ends_at,
@@ -650,6 +740,9 @@ export default function AdminPromociones() {
     if (promo.type === 'combo') {
       return `Precio combo: $${Number(promo.price).toLocaleString('es-AR')}`
     }
+    if (promo.kind === 'weight') {
+      return `${promo.discount_value}% OFF desde ${formatWeight(promo.min_weight)}`
+    }
     if (promo.discount_type === 'percent') return `${promo.discount_value}% OFF`
     return `$${Number(promo.discount_value).toLocaleString('es-AR')} de descuento`
   }
@@ -688,9 +781,9 @@ export default function AdminPromociones() {
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">🏷️</div>
                   )}
-                  <span className={`absolute top-3 left-3 badge ${promo.type === 'combo' ? 'badge-oferta' : 'badge-celeste'}`}>
-                    {promo.type === 'combo' ? 'Combo' : 'Promoción'}
-                  </span>
+<span className={`absolute top-3 left-3 badge ${promo.type === 'combo' ? 'badge-oferta' : promo.kind === 'weight' ? 'badge-geo' : 'badge-celeste'}`}>
+                      {promo.type === 'combo' ? 'Combo' : promo.kind === 'weight' ? 'Por peso' : 'Promoción'}
+                    </span>
                   <span className={`absolute top-3 right-3 badge ${promo.is_active ? 'badge-stock' : 'badge-sinstock'}`}>
                     {promo.is_active ? 'Activa' : 'Inactiva'}
                   </span>

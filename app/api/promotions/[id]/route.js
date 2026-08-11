@@ -6,6 +6,9 @@ function validatePromotion(body) {
   if (!body.title?.trim()) return 'El título es obligatorio'
   if (!['combo', 'promo'].includes(body.type)) return 'Tipo inválido'
 
+  const kind = body.kind || 'quantity'
+  if (!['quantity', 'weight'].includes(kind)) return 'Tipo de descuento inválido'
+
   if (body.type === 'combo') {
     if (!body.price || Number(body.price) <= 0) return 'El precio del combo es obligatorio'
     if (!body.items?.length) return 'El combo necesita al menos un producto'
@@ -16,6 +19,14 @@ function validatePromotion(body) {
     if (!['percent', 'fixed'].includes(body.discount_type)) return 'Tipo de descuento inválido'
     if (!body.discount_value || Number(body.discount_value) <= 0) return 'El descuento es obligatorio'
     if (!body.items?.length) return 'La promo necesita un producto o categoría'
+
+    if (kind === 'weight') {
+      if (body.discount_type !== 'percent') return 'El descuento por peso solo admite porcentaje'
+      if (!Number(body.min_weight) || Number(body.min_weight) <= 0) return 'El peso mínimo es obligatorio'
+      const categoryItem = body.items.find(i => i.category_id)
+      if (!categoryItem) return 'El descuento por peso necesita una categoría'
+      if (body.items.some(i => !i.category_id)) return 'El descuento por peso solo admite categorías'
+    }
   }
 
   return null
@@ -61,6 +72,8 @@ export async function PATCH(request, { params }) {
         discount_type: body.type === 'promo' ? body.discount_type : null,
         discount_value: body.type === 'promo' ? body.discount_value : null,
         min_quantity: body.type === 'promo' ? body.min_quantity || 1 : 1,
+        kind: body.type === 'promo' ? body.kind || 'quantity' : 'quantity',
+        min_weight: body.type === 'promo' && (body.kind || 'quantity') === 'weight' ? Number(body.min_weight) : null,
         is_active: body.is_active ?? true,
         starts_at: body.starts_at || null,
         ends_at: body.ends_at || null,

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useReducer, useEffect } from 'react'
 import { computeSalePrice } from '@/lib/pricing'
+import { getWeightPromos, getWeightPromosNow } from '@/lib/weight-promos'
 
 const CartContext = createContext(null)
 
@@ -58,22 +59,49 @@ function cartReducer(state, action) {
   }
 }
 
-export function getEffectiveUnitPrice(item, allItems) {
+export function getEffectiveUnitPrice(item, allItems, weightPromos = getWeightPromosNow()) {
   if (item.type === 'combo') return Number(item.price)
   const base = Number(item.price)
+  let price = base
+
   const promo = item.promo
-  if (!promo) return base
-  if (promo.min_quantity > 1 && promo.category_id) {
-    const catQty = allItems
-      .filter(i => i.type !== 'combo' && i.categoryId === promo.category_id)
-      .reduce((sum, i) => sum + i.quantity, 0)
-    if (catQty < promo.min_quantity) return base
+  if (promo) {
+    let applies = true
+    if (promo.min_quantity > 1 && promo.category_id) {
+      const catQty = allItems
+        .filter(i => i.type !== 'combo' && i.categoryId === promo.category_id)
+        .reduce((sum, i) => sum + i.quantity, 0)
+      applies = catQty >= promo.min_quantity
+    }
+    if (applies) {
+      price = computeSalePrice(base, promo.discount_type, promo.discount_value)
+    }
   }
-  return computeSalePrice(base, promo.discount_type, promo.discount_value)
+
+  if (Array.isArray(weightPromos) && weightPromos.length && Number(item.weight) > 0 && item.categoryId) {
+    const totalWeight = allItems
+      .filter(i => i.type !== 'combo' && i.categoryId === item.categoryId && Number(i.weight) > 0)
+      .reduce((sum, i) => sum + Number(i.weight) * (i.quantity || 1), 0)
+
+    const best = weightPromos
+      .filter(p => p.category_id === item.categoryId && Number(p.min_weight) > 0 && totalWeight >= Number(p.min_weight))
+      .sort((a, b) => Number(b.discount_value) - Number(a.discount_value) || Number(b.min_weight) - Number(a.min_weight))[0]
+
+    if (best) {
+      const weightPrice = computeSalePrice(base, 'percent', best.discount_value)
+      if (weightPrice < price) price = weightPrice
+    }
+  }
+
+  return price
 }
 
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [], isOpen: false })
+
+  useEffect(() => {
+    getWeightPromos()
+  }, [])
 
   useEffect(() => {
     try {

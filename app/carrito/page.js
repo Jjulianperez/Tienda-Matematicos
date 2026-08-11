@@ -20,6 +20,9 @@ import {
 } from 'react-icons/hi2'
 import { getOptimizedUrl } from '@/lib/images'
 import { useCart, getEffectiveUnitPrice } from '@/context/CartContext'
+import { computeSalePrice, findBestWeightPromo } from '@/lib/pricing'
+import { useWeightPromos } from '@/hooks/useWeightPromos'
+import { formatWeight } from '@/lib/weight'
 import { useSiteSettings } from '@/hooks/useSiteSettings'
 import { formatMessage } from '@/lib/site-settings'
 
@@ -125,6 +128,7 @@ function CartItem({ item, unitPrice, isDiscounted, promoNote, onUpdate, onRemove
 export default function CarritoPage() {
   const { state, removeItem, updateQuantity, clearCart, subtotal, totalItems } = useCart()
   const siteSettings = useSiteSettings()
+  const weightPromos = useWeightPromos()
   const [formData, setFormData] = useState({ customer_name: '', customer_phone: '' })
   const [buying, setBuying] = useState(false)
   const [buyError, setBuyError] = useState('')
@@ -271,13 +275,19 @@ export default function CarritoPage() {
                 </h2>
                 {state.items.map(item => {
                   const unitPrice = getEffectiveUnitPrice(item, state.items)
-                  const isDiscounted = item.type !== 'combo' && item.promo && unitPrice < Number(item.price)
+                  const isDiscounted = item.type !== 'combo' && unitPrice < Number(item.price)
 
                   let promoNote = ''
                   if (item.type !== 'combo' && item.promo && item.promo.min_quantity > 1 && item.promo.category_id) {
                     const qty = categoryQty(state.items, item.promo.category_id)
                     if (qty < item.promo.min_quantity) {
                       promoNote = `Agregá ${item.promo.min_quantity - qty} más para el descuento`
+                    }
+                  }
+                  if (!promoNote && item.type !== 'combo' && Number(item.weight) > 0 && weightPromos?.length) {
+                    const wp = findBestWeightPromo(item.categoryId, weightPromos, state.items)
+                    if (wp && unitPrice === computeSalePrice(Number(item.price), 'percent', wp.discount_value)) {
+                      promoNote = `${wp.discount_value}% OFF por peso acumulado (${formatWeight(wp.totalWeight)} en total)`
                     }
                   }
 
@@ -315,6 +325,19 @@ export default function CarritoPage() {
                       <span className="text-white/50">Envío</span>
                       <span className="text-white/40 text-xs">Se coordina por WhatsApp</span>
                     </div>
+                    {(() => {
+                      const savings = state.items.reduce((acc, item) => {
+                        if (item.type === 'combo') return acc
+                        const eff = getEffectiveUnitPrice(item, state.items)
+                        return acc + (Number(item.price) - eff) * item.quantity
+                      }, 0)
+                      return savings > 1 ? (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-primary-light/80">Descuentos aplicados</span>
+                          <span className="text-primary-light font-medium">−${savings.toLocaleString('es-AR')}</span>
+                        </div>
+                      ) : null
+                    })()}
                   </div>
                   <div className="flex items-end justify-between pt-4 mt-4 border-t border-white/10">
                     <span className="text-sm font-medium text-white/70">Total</span>

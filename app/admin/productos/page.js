@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutlinePhoto, HiOutlineCog6Tooth, HiOutlineInformationCircle } from 'react-icons/hi2'
+import { formatWeight } from '@/lib/weight'
 import AdminLayout from '@/components/admin/AdminLayout'
 import { Confirm, useToast } from '@/components/Modal'
 import FormModal from '@/components/admin/FormModal'
@@ -15,6 +16,7 @@ function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess
     name: product?.name || '',
     description: product?.description || '',
     price: product?.price || '',
+    weight: product?.weight ?? '',
     stock: product?.stock ?? '',
     category_id: product?.category_id || '',
     images: product?.images || [],
@@ -67,6 +69,7 @@ function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess
     const body = {
       ...form,
       price: parseFloat(form.price),
+      weight: form.weight ? parseInt(form.weight) || null : null,
       stock: parseInt(form.stock) || 0,
     }
 
@@ -211,8 +214,8 @@ function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess
         )}
 
         {tab === 'stock' && (
-          <SectionCard title="Inventario" description="Precio y stock disponible" icon={HiOutlineCog6Tooth}>
-            <div className="grid sm:grid-cols-2 gap-6">
+          <SectionCard title="Inventario" description="Precio, peso y stock disponible" icon={HiOutlineCog6Tooth}>
+            <div className="grid sm:grid-cols-3 gap-6">
               <Field label="Precio ($)" required>
                 <input
                   type="number"
@@ -222,6 +225,20 @@ function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess
                   onChange={e => setForm({ ...form, price: e.target.value })}
                   className={`${inputCls} text-lg font-display font-semibold`}
                   required
+                />
+              </Field>
+              <Field
+                label="Peso (gramos)"
+                hint={form.weight ? `Se muestra como ${formatWeight(parseInt(form.weight) || 0)} en la tienda.` : 'Opcional. Ej: 500, 1000, 2000.'}
+              >
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={form.weight}
+                  onChange={e => setForm({ ...form, weight: e.target.value })}
+                  placeholder="500"
+                  className={inputCls}
                 />
               </Field>
               <Field label="Stock" hint={parseInt(form.stock) === 0 ? 'Se mostrará como "Sin stock" en la tienda.' : undefined}>

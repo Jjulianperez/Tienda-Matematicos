@@ -27,6 +27,8 @@ import { getOptimizedUrl } from '@/lib/images'
 import { computeSalePrice, discountPercentOf } from '@/lib/pricing'
 import { useCart } from '@/context/CartContext'
 import { useSiteSettings } from '@/hooks/useSiteSettings'
+import { useWeightPromos } from '@/hooks/useWeightPromos'
+import { formatWeight } from '@/lib/weight'
 import { formatMessage } from '@/lib/site-settings'
 
 const SPECS = [
@@ -56,6 +58,7 @@ function ProductoDetalle({ id }) {
   const router = useRouter()
   const { addItem, openCart } = useCart()
   const siteSettings = useSiteSettings()
+  const weightPromos = useWeightPromos()
   const [product, setProduct] = useState(null)
   const [related, setRelated] = useState([])
   const [loading, setLoading] = useState(true)
@@ -74,6 +77,9 @@ function ProductoDetalle({ id }) {
   const isThresholdPromo = product?.promo && product.promo.min_quantity > 1
   const buyPrice = isThresholdPromo ? productPrice : salePrice
   const discountPct = product?.promo ? discountPercentOf(productPrice, salePrice) : 0
+  const weightPromo = weightPromos
+    ?.filter(p => p.category_id === product?.category_id)
+    .sort((a, b) => Number(a.min_weight) - Number(b.min_weight))[0]
 
   const whatsappMessage = encodeURIComponent(
     formatMessage(siteSettings.messages.wa_consult, {
@@ -147,6 +153,7 @@ function ProductoDetalle({ id }) {
       quantity: 1,
       stock: product.stock,
       categoryId: product.category_id,
+      weight: product.weight || null,
       promo: product.promo
         ? {
             discount_type: product.promo.discount_type,
@@ -296,6 +303,9 @@ function ProductoDetalle({ id }) {
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <span className="badge badge-geo">Cálculo certificado</span>
                 <span className="seal seal-leather">Artesanal</span>
+                {product.weight > 0 && (
+                  <span className="badge badge-stock">{formatWeight(product.weight)}</span>
+                )}
               </div>
               <h1 className="font-display font-bold text-4xl sm:text-5xl text-white text-balance leading-[1.08]">
                 {product.name}
@@ -325,6 +335,12 @@ function ProductoDetalle({ id }) {
                         min: product.promo.min_quantity,
                       }
                     )}
+                  </span>
+                )}
+                {weightPromo && (
+                  <span className="inline-block mt-2 badge badge-geo">
+                    {weightPromo.discount_value}% OFF desde {formatWeight(weightPromo.min_weight)} acumulados de{' '}
+                    {product.categories?.name || 'la categoría'}
                   </span>
                 )}
                 <p className="text-xs text-white/30 mt-2">

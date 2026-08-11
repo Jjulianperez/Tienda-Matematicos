@@ -7,7 +7,9 @@ import { getOptimizedUrl } from '@/lib/images'
 import { useCart } from '@/context/CartContext'
 import { computeSalePrice, discountPercentOf } from '@/lib/pricing'
 import { useSiteSettings } from '@/hooks/useSiteSettings'
+import { useWeightPromos } from '@/hooks/useWeightPromos'
 import { formatMessage } from '@/lib/site-settings'
+import { formatWeight } from '@/lib/weight'
 
 function getBadges(product) {
   const badges = []
@@ -22,6 +24,10 @@ export default function ProductCard({ product, onClick }) {
   const badges = getBadges(product)
   const { addItem, openCart } = useCart()
   const siteSettings = useSiteSettings()
+  const weightPromos = useWeightPromos()
+  const weightPromo = weightPromos
+    ?.filter(p => p.category_id === product.category_id)
+    .sort((a, b) => Number(a.min_weight) - Number(b.min_weight))[0]
 
   const promo = product.promo
   const fullPrice = Number(product.price)
@@ -41,6 +47,7 @@ export default function ProductCard({ product, onClick }) {
       quantity: 1,
       stock: product.stock,
       categoryId: product.category_id,
+      weight: product.weight || null,
       promo: promo
         ? {
             discount_type: promo.discount_type,
@@ -98,6 +105,12 @@ export default function ProductCard({ product, onClick }) {
           </span>
         )}
 
+        {weightPromo && Number(product.weight) >= 1000 && (
+          <span className="absolute bottom-4 right-4 badge badge-geo shadow-lg shadow-primary/20">
+            {weightPromo.discount_value}% OFF desde {formatWeight(weightPromo.min_weight)}
+          </span>
+        )}
+
         {/* Overlay con "Ver Producto" en hover */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <button
@@ -117,6 +130,7 @@ export default function ProductCard({ product, onClick }) {
         <div className="mb-4">
           <span className="block text-[11px] font-semibold uppercase tracking-widest text-white/40 mb-2">
             {product.categories?.name || 'Producto'}
+            {product.weight ? ` · ${formatWeight(product.weight)}` : ''}
           </span>
           <h3
             className="font-display font-bold text-lg sm:text-xl text-white/95 group-hover:text-primary-light transition-colors line-clamp-2 cursor-pointer leading-tight"

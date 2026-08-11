@@ -5,6 +5,9 @@ import { useCart, getEffectiveUnitPrice } from '@/context/CartContext'
 import { HiOutlineXMark, HiOutlineMinus, HiOutlinePlus, HiOutlineTrash, HiOutlineArrowRight } from 'react-icons/hi2'
 import Image from 'next/image'
 import { getOptimizedUrl } from '@/lib/images'
+import { computeSalePrice, findBestWeightPromo } from '@/lib/pricing'
+import { useWeightPromos } from '@/hooks/useWeightPromos'
+import { formatWeight } from '@/lib/weight'
 
 function CartSidebarItem({ item, unitPrice, isDiscounted, promoNote, onUpdate, onRemove }) {
   if (item.type === 'combo') {
@@ -98,6 +101,7 @@ function categoryQty(items, categoryId) {
 
 export function CartSidebar() {
   const { state, removeItem, updateQuantity, closeCart, subtotal, totalItems } = useCart()
+  const weightPromos = useWeightPromos()
 
   const handleCheckout = () => {
     window.location.href = '/carrito'
@@ -158,13 +162,19 @@ export function CartSidebar() {
               <>
                 {state.items.map(item => {
                   const unitPrice = getEffectiveUnitPrice(item, state.items)
-                  const isDiscounted = item.type !== 'combo' && item.promo && unitPrice < Number(item.price)
+                  const isDiscounted = item.type !== 'combo' && unitPrice < Number(item.price)
 
                   let promoNote = ''
                   if (item.type !== 'combo' && item.promo && item.promo.min_quantity > 1 && item.promo.category_id) {
                     const qty = categoryQty(state.items, item.promo.category_id)
                     if (qty < item.promo.min_quantity) {
                       promoNote = `Agregá ${item.promo.min_quantity - qty} más para el descuento`
+                    }
+                  }
+                  if (!promoNote && item.type !== 'combo' && Number(item.weight) > 0 && weightPromos?.length) {
+                    const wp = findBestWeightPromo(item.categoryId, weightPromos, state.items)
+                    if (wp && unitPrice === computeSalePrice(Number(item.price), 'percent', wp.discount_value)) {
+                      promoNote = `${wp.discount_value}% OFF por peso acumulado (${formatWeight(wp.totalWeight)})`
                     }
                   }
 
