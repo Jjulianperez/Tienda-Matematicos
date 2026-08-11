@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import ProductGrid from '@/components/ProductGrid'
+import ComboCard from '@/components/ComboCard'
 import GeometricDecor from '@/components/ui/GeometricDecor'
 import SortSelect from '@/components/ui/SortSelect'
 import LoadingModal from '@/components/ui/LoadingModal'
@@ -41,12 +42,14 @@ function CatalogoContent() {
   const siteSettings = useSiteSettings()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
+  const [combos, setCombos] = useState([])
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoria') || '')
   const [sort, setSort] = useState('populares')
   const [search, setSearch] = useState(searchParams.get('q') || '')
   const [loading, setLoading] = useState(true)
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [onlyOffers, setOnlyOffers] = useState(searchParams.get('oferta') === '1')
+  const [onlyCombos, setOnlyCombos] = useState(searchParams.get('combo') === '1')
   const cache = useRef({})
 
   const fetchProducts = useCallback(() => {
@@ -81,6 +84,13 @@ function CatalogoContent() {
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    fetch('/api/promotions/public')
+      .then(res => res.json())
+      .then(data => setCombos((data || []).filter(c => c.type === 'combo')))
+      .catch(() => {})
+  }, [])
+
   const filtered = (() => {
     let result = search.trim()
       ? products.filter(p =>
@@ -93,21 +103,54 @@ function CatalogoContent() {
     return result
   })()
 
+  const filteredCombos = (() => {
+    if (!search.trim()) return combos
+    const q = search.toLowerCase()
+    return combos.filter(c =>
+      c.title?.toLowerCase().includes(q) ||
+      c.description?.toLowerCase().includes(q) ||
+      (c.items || []).some(i => i.products?.name?.toLowerCase().includes(q))
+    )
+  })()
+
   const toggleOffers = () => {
     const next = !onlyOffers
     setOnlyOffers(next)
+    if (next) setOnlyCombos(false)
     const params = new URLSearchParams(searchParams)
     if (next) params.set('oferta', '1')
     else params.delete('oferta')
+    params.delete('combo')
+    router.replace(`/catalogo?${params.toString()}`, { scroll: false })
+  }
+
+  const toggleCombos = () => {
+    const next = !onlyCombos
+    setOnlyCombos(next)
+    if (next) {
+      setOnlyOffers(false)
+      setSelectedCategory('')
+    }
+    const params = new URLSearchParams(searchParams)
+    if (next) params.set('combo', '1')
+    else params.delete('combo')
+    params.delete('oferta')
+    params.delete('categoria')
     router.replace(`/catalogo?${params.toString()}`, { scroll: false })
   }
 
   const handleCategory = (slug) => {
+    if (slug === 'oferta') return toggleOffers()
+    if (slug === 'combo') return toggleCombos()
     setSelectedCategory(slug)
+    setOnlyOffers(false)
+    setOnlyCombos(false)
     setShowMobileFilters(false)
     const params = new URLSearchParams(searchParams)
     if (slug) params.set('categoria', slug)
     else params.delete('categoria')
+    params.delete('oferta')
+    params.delete('combo')
     router.replace(`/catalogo?${params.toString()}`, { scroll: false })
   }
 
@@ -116,10 +159,11 @@ function CatalogoContent() {
     setSearch('')
     setSort('populares')
     setOnlyOffers(false)
+    setOnlyCombos(false)
     router.replace('/catalogo', { scroll: false })
   }
 
-  const hasFilters = selectedCategory || search || sort !== 'populares' || onlyOffers
+  const hasFilters = selectedCategory || search || sort !== 'populares' || onlyOffers || onlyCombos
 
   return (
     <>
@@ -194,14 +238,20 @@ function CatalogoContent() {
               <CategoryChip
                 name="Todos"
                 slug=""
-                active={!selectedCategory && !onlyOffers}
+                active={!selectedCategory && !onlyOffers && !onlyCombos}
                 onClick={handleCategory}
               />
               <CategoryChip
                 name={siteSettings.messages.offer_label}
                 slug="oferta"
                 active={onlyOffers}
-                onClick={toggleOffers}
+                onClick={handleCategory}
+              />
+              <CategoryChip
+                name="Combos"
+                slug="combo"
+                active={onlyCombos}
+                onClick={handleCategory}
               />
               {categories.map(cat => (
                 <CategoryChip
@@ -236,14 +286,20 @@ function CatalogoContent() {
                 <CategoryChip
                   name="Todos"
                   slug=""
-                  active={!selectedCategory && !onlyOffers}
+                  active={!selectedCategory && !onlyOffers && !onlyCombos}
                   onClick={handleCategory}
                 />
                 <CategoryChip
                   name={siteSettings.messages.offer_label}
                   slug="oferta"
                   active={onlyOffers}
-                  onClick={toggleOffers}
+                  onClick={handleCategory}
+                />
+                <CategoryChip
+                  name="Combos"
+                  slug="combo"
+                  active={onlyCombos}
+                  onClick={handleCategory}
                 />
                 {categories.map(cat => (
                   <CategoryChip
@@ -262,7 +318,10 @@ function CatalogoContent() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-10">
             <div className="flex items-center gap-3">
               <p className="text-sm text-white/40">
-                {filtered.length} {filtered.length === 1 ? 'producto' : 'productos'}
+                {onlyCombos ? filteredCombos.length : filtered.length}{' '}
+                {onlyCombos
+                  ? filteredCombos.length === 1 ? 'combo' : 'combos'
+                  : filtered.length === 1 ? 'producto' : 'productos'}
                 {selectedCategory && ` en ${categories.find(c => c.slug === selectedCategory)?.name || ''}`}
               </p>
               {hasFilters && (
@@ -305,13 +364,32 @@ function CatalogoContent() {
               </motion.div>
             ) : (
               <motion.div
-                key={`${selectedCategory}-${sort}-${search}`}
+                key={`${selectedCategory}-${sort}-${search}-${onlyCombos}`}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -16 }}
                 transition={{ duration: 0.3 }}
               >
-                {filtered.length === 0 ? (
+                {onlyCombos ? (
+                  filteredCombos.length === 0 ? (
+                    <div className="card-dark text-center py-24 px-6">
+                      <div className="text-6xl mb-4 opacity-20">🏷️</div>
+                      <p className="font-display text-2xl text-white/60">Sin combos</p>
+                      <p className="text-white/30 text-sm mt-3">
+                        Todavía no hay combos disponibles.
+                      </p>
+                      <button onClick={clearFilters} className="btn-outline mt-8">
+                        Limpiar filtros
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
+                      {filteredCombos.map(combo => (
+                        <ComboCard key={combo.id} combo={combo} />
+                      ))}
+                    </div>
+                  )
+                ) : filtered.length === 0 ? (
                   <div className="card-dark text-center py-24 px-6">
                     <div className="text-6xl mb-4 opacity-20">🧉</div>
                     <p className="font-display text-2xl text-white/60">Sin resultados</p>
