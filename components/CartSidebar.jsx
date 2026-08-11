@@ -162,7 +162,12 @@ export function CartSidebar() {
               <>
                 {state.items.map(item => {
                   const unitPrice = getEffectiveUnitPrice(item, state.items)
-                  const isDiscounted = item.type !== 'combo' && unitPrice < Number(item.price)
+                  const wp = item.type !== 'combo' && Number(item.weight) > 0 && weightPromos?.length
+                    ? findBestWeightPromo(item.categoryId, weightPromos, state.items)
+                    : null
+                  const weightPrice = wp ? computeSalePrice(Number(item.price), 'percent', wp.discount_value) : null
+                  const isWeightDiscounted = weightPrice !== null && unitPrice === weightPrice
+                  const isDiscounted = item.type !== 'combo' && item.promo && item.promo.min_quantity <= 1 && unitPrice < Number(item.price)
 
                   let promoNote = ''
                   if (item.type !== 'combo' && item.promo && item.promo.min_quantity > 1 && item.promo.category_id) {
@@ -172,9 +177,18 @@ export function CartSidebar() {
                     }
                   }
                   if (!promoNote && item.type !== 'combo' && Number(item.weight) > 0 && weightPromos?.length) {
-                    const wp = findBestWeightPromo(item.categoryId, weightPromos, state.items)
-                    if (wp && unitPrice === computeSalePrice(Number(item.price), 'percent', wp.discount_value)) {
-                      promoNote = `${wp.discount_value}% OFF por peso acumulado (${formatWeight(wp.totalWeight)})`
+                    if (wp && isWeightDiscounted) {
+                      promoNote = `${wp.discount_value}% OFF por peso: se descuenta sobre el total`
+                    } else if (!wp) {
+                      const catWeight = state.items
+                        .filter(i => i.type !== 'combo' && i.categoryId === item.categoryId && Number(i.weight) > 0)
+                        .reduce((s, i) => s + Number(i.weight) * (i.quantity || 1), 0)
+                      const first = weightPromos
+                        .filter(p => p.category_id === item.categoryId && Number(p.min_weight) > 0)
+                        .sort((a, b) => Number(a.min_weight) - Number(b.min_weight))[0]
+                      if (first && catWeight < Number(first.min_weight)) {
+                        promoNote = `Sumá ${formatWeight(Number(first.min_weight) - catWeight)} más para el descuento por peso`
+                      }
                     }
                   }
 
@@ -195,6 +209,22 @@ export function CartSidebar() {
                     <span className="text-white/50">Subtotal ({totalItems} items)</span>
                     <span className="text-white font-medium">${subtotal.toLocaleString('es-AR')}</span>
                   </div>
+                  {(() => {
+                    const weightSavings = state.items.reduce((acc, item) => {
+                      if (item.type === 'combo' || Number(item.weight) <= 0 || !weightPromos?.length) return acc
+                      const eff = getEffectiveUnitPrice(item, state.items)
+                      const wpItem = findBestWeightPromo(item.categoryId, weightPromos, state.items)
+                      const wPrice = wpItem ? computeSalePrice(Number(item.price), 'percent', wpItem.discount_value) : null
+                      if (wPrice !== null && eff === wPrice) return acc + (Number(item.price) - eff) * item.quantity
+                      return acc
+                    }, 0)
+                    return weightSavings > 1 ? (
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-primary-light/80">Descuento por peso</span>
+                        <span className="text-primary-light font-medium">−${weightSavings.toLocaleString('es-AR')}</span>
+                      </div>
+                    ) : null
+                  })()}
                   <div className="text-xs text-white/30 mb-4">El envío se calcula en el checkout</div>
                   <button
                     onClick={handleCheckout}
