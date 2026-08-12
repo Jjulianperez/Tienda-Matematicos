@@ -302,20 +302,23 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.6rem;
+  padding: 0.3rem 0.7rem;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+  background: rgba(14, 17, 20, 0.92);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
-.badge-new { background: rgba(117, 170, 219, 0.12); color: #75AADB; border: 1px solid rgba(117, 170, 219, 0.3); }
-.badge-oferta { background: rgba(110, 139, 61, 0.12); color: #94A86A; border: 1px solid rgba(110, 139, 61, 0.3); }
-.badge-premium { background: rgba(215, 185, 142, 0.12); color: #D7B98E; border: 1px solid rgba(215, 185, 142, 0.3); }
-.badge-artesanal { background: rgba(139, 90, 43, 0.15); color: #c9994f; border: 1px solid rgba(139, 90, 43, 0.4); }
-.badge-stock { background: rgba(110, 139, 61, 0.12); color: #94A86A; border: 1px solid rgba(110, 139, 61, 0.3); }
-.badge-sinstock { background: rgba(184, 60, 60, 0.12); color: #e07a7a; border: 1px solid rgba(184, 60, 60, 0.3); }
-.badge-celeste { background: rgba(117, 170, 219, 0.1); color: #75AADB; border: 1px solid rgba(117, 170, 219, 0.25); }
-.badge-geo { background: rgba(110, 139, 61, 0.1); color: #94A86A; border: 1px dashed rgba(110, 139, 61, 0.4); }
+.badge-new { color: #a5c9e8; border: 1px solid rgba(117, 170, 219, 0.55); }
+.badge-oferta { color: #c9db9f; border: 1px solid rgba(148, 168, 106, 0.6); }
+.badge-premium { color: #e6ca97; border: 1px solid rgba(215, 185, 142, 0.55); }
+.badge-artesanal { color: #dcb06e; border: 1px solid rgba(139, 90, 43, 0.6); }
+.badge-stock { color: #c9db9f; border: 1px solid rgba(148, 168, 106, 0.6); }
+.badge-sinstock { color: #f0a3a3; border: 1px solid rgba(184, 60, 60, 0.65); }
+.badge-celeste { color: #a5c9e8; border: 1px solid rgba(117, 170, 219, 0.5); }
+.badge-geo { color: #c9db9f; border: 1px dashed rgba(148, 168, 106, 0.6); }
 
 /* ---------- Sellos ---------- */
 .seal {
