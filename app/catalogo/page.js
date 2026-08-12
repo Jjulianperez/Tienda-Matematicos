@@ -99,7 +99,12 @@ function CatalogoContent() {
           p.categories?.name?.toLowerCase().includes(search.toLowerCase())
         )
       : products
-    if (onlyOffers) result = result.filter(p => p.promo)
+    if (onlyOffers) {
+      result = result.filter(p =>
+        p.promo ||
+        (Number(p.weight) > 0 && weightPromos?.some(wp => wp.category_id === p.category_id))
+      )
+    }
     return result
   })()
 
@@ -164,6 +169,9 @@ function CatalogoContent() {
   }
 
   const hasFilters = selectedCategory || search || sort !== 'populares' || onlyOffers || onlyCombos
+
+  const showCombos = !onlyCombos && !selectedCategory && !onlyOffers
+  const gridCount = onlyCombos ? filteredCombos.length : filtered.length + (showCombos ? filteredCombos.length : 0)
 
   return (
     <>
@@ -318,10 +326,7 @@ function CatalogoContent() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-10">
             <div className="flex items-center gap-3">
               <p className="text-sm text-white/40">
-                {onlyCombos ? filteredCombos.length : filtered.length}{' '}
-                {onlyCombos
-                  ? filteredCombos.length === 1 ? 'combo' : 'combos'
-                  : filtered.length === 1 ? 'producto' : 'productos'}
+                {gridCount} {gridCount === 1 ? 'producto' : 'productos'}
                 {selectedCategory && ` en ${categories.find(c => c.slug === selectedCategory)?.name || ''}`}
               </p>
               {hasFilters && (
@@ -389,7 +394,7 @@ function CatalogoContent() {
                       ))}
                     </div>
                   )
-                ) : filtered.length === 0 ? (
+                ) : filtered.length === 0 && (!showCombos || filteredCombos.length === 0) ? (
                   <div className="card-dark text-center py-24 px-6">
                     <div className="text-6xl mb-4 opacity-20">🧉</div>
                     <p className="font-display text-2xl text-white/60">Sin resultados</p>
@@ -403,6 +408,7 @@ function CatalogoContent() {
                 ) : (
                   <ProductGrid
                     products={filtered}
+                    combos={showCombos ? filteredCombos : []}
                     onProductClick={(p) => router.push(`/producto/${p.id}`)}
                   />
                 )}

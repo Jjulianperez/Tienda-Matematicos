@@ -1,9 +1,13 @@
 'use client'
 
 import ProductCard from './ProductCard'
+import ComboCard from './ComboCard'
 
-export default function ProductGrid({ products, onProductClick }) {
-  if (!products?.length) {
+export default function ProductGrid({ products, combos, onProductClick }) {
+  const hasProducts = products?.length > 0
+  const hasCombos = combos?.length > 0
+
+  if (!hasProducts && !hasCombos) {
     return (
       <div className="text-center py-20">
         <p className="text-6xl mb-4">🧉</p>
@@ -19,6 +23,12 @@ export default function ProductGrid({ products, onProductClick }) {
           key={product.id}
           product={product}
           onClick={onProductClick}
+        />
+      ))}
+      {combos?.map((combo) => (
+        <ComboCard
+          key={`combo-${combo.id}`}
+          combo={combo}
         />
       ))}
     </div>

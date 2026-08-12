@@ -105,9 +105,9 @@ export default function ProductCard({ product, onClick }) {
           </span>
         )}
 
-        {weightPromo && Number(product.weight) >= 1000 && (
+        {weightPromo && Number(product.weight) > 0 && (
           <span className="absolute bottom-4 right-4 badge badge-geo shadow-lg shadow-primary/20">
-            {weightPromo.discount_value}% OFF desde {formatWeight(weightPromo.min_weight)}
+            {weightPromo.discount_value}% OFF desde {formatWeight(weightPromo.min_weight)} acumulados
           </span>
         )}
 
