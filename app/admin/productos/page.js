@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineXMark, HiOutlinePhoto, HiOutlineCog6Tooth, HiOutlineInformationCircle } from 'react-icons/hi2'
 import { formatWeight } from '@/lib/weight'
 import AdminLayout from '@/components/admin/AdminLayout'
@@ -184,7 +185,13 @@ function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
               {form.images.map((img, i) => (
                 <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-white/5 border border-white/10">
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  <Image
+                    src={img}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="200px"
+                  />
                   <button
                     type="button"
                     onClick={() => removeImage(i)}
@@ -383,10 +390,12 @@ export default function AdminProductos() {
                       <td>
                         <div className="flex items-center gap-3">
                           {product.images?.[0] ? (
-                            <img
+                            <Image
                               src={product.images[0]}
                               alt=""
-                              className="w-10 h-10 rounded-lg object-cover bg-white/5"
+                              width={40}
+                              height={40}
+                              className="rounded-lg object-cover bg-white/5"
                             />
                           ) : (
                             <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-lg opacity-30">🧉</div>

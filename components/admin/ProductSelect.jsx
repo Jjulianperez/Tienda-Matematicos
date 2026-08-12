@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import Image from 'next/image'
 import { HiOutlineChevronDown, HiOutlineMagnifyingGlass, HiOutlineCheck } from 'react-icons/hi2'
 
 function Thumb({ src, alt }) {
@@ -10,7 +11,7 @@ function Thumb({ src, alt }) {
       <span className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center text-lg shrink-0">🧉</span>
     )
   }
-  return <img src={src} alt={alt} className="w-9 h-9 rounded-lg object-cover bg-white/10 shrink-0" />
+  return <Image src={src} alt={alt} width={36} height={36} className="rounded-lg object-cover bg-white/10 shrink-0" />
 }
 
 function StockBadge({ product }) {

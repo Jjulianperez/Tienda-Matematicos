@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineMagnifyingGlass } from 'react-icons/hi2'
 import AdminLayout from '@/components/admin/AdminLayout'
 
@@ -118,10 +119,12 @@ export default function AdminOrdenes() {
               >
                 <div className="flex items-center gap-4 min-w-0 flex-1">
                   {order.products?.images?.[0] ? (
-                    <img
+                    <Image
                       src={order.products.images[0]}
                       alt=""
-                      className="w-14 h-14 rounded-xl object-cover bg-white/5 shrink-0"
+                      width={56}
+                      height={56}
+                      className="rounded-xl object-cover bg-white/5 shrink-0"
                     />
                   ) : (
                     <div className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center text-xl opacity-30 shrink-0">🧉</div>

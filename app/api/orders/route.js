@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireAdmin } from '@/lib/auth'
 import { sendNewOrderNotification } from '@/lib/email'
+import { attachPromoInfo, computeSalePrice, computeWeightPrice } from '@/lib/pricing'
 
 function generateOrderNumber() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789'

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import {
   HiOutlinePlus,
   HiOutlinePencil,
@@ -315,7 +316,13 @@ function PromoForm({ promo, products, categories, onSave, onCancel, onError, onS
               <SectionCard title="Foto" description="Se muestra en catálogo y home">
                 {form.image ? (
                   <div className="relative aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10">
-                    <img src={form.image} alt="" className="w-full h-full object-cover" />
+                    <Image
+                      src={form.image}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="600px"
+                    />
                     <button
                       type="button"
                       onClick={() => setForm({ ...form, image: '' })}
@@ -793,7 +800,13 @@ export default function AdminPromociones() {
               <div key={promo.id} className="card-dark overflow-hidden flex flex-col">
                 <div className="relative aspect-video bg-white/5 overflow-hidden">
                   {promo.image ? (
-                    <img src={promo.image} alt="" className="w-full h-full object-cover" />
+                    <Image
+                      src={promo.image}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="400px"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">🏷️</div>
                   )}
