@@ -12,6 +12,7 @@ import GeometricDecor from '@/components/ui/GeometricDecor'
 import SortSelect from '@/components/ui/SortSelect'
 import LoadingModal from '@/components/ui/LoadingModal'
 import { useSiteSettings } from '@/hooks/useSiteSettings'
+import { useWeightPromos } from '@/hooks/useWeightPromos'
 import { HiOutlineMagnifyingGlass, HiOutlineXMark, HiOutlineAdjustmentsHorizontal } from 'react-icons/hi2'
 
 const SORTS = [
@@ -40,6 +41,7 @@ function CatalogoContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const siteSettings = useSiteSettings()
+  const weightPromos = useWeightPromos()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [combos, setCombos] = useState([])
