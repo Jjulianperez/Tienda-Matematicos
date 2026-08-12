@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
-import { HiOutlineArrowTopRightOnSquare, HiOutlineEye, HiOutlinePlus } from 'react-icons/hi2'
+import { HiOutlineArrowTopRightOnSquare, HiOutlineEye, HiOutlinePlus, HiOutlineSparkles } from 'react-icons/hi2'
 import { getOptimizedUrl } from '@/lib/images'
 import { useCart } from '@/context/CartContext'
 import { computeSalePrice, discountPercentOf } from '@/lib/pricing'
@@ -92,10 +92,6 @@ export default function ProductCard({ product, onClick }) {
           </div>
         )}
 
-        {product.stock > 0 && (
-          <span className="absolute top-4 right-4 badge badge-stock transition-transform hover:scale-105">Stock: {product.stock}</span>
-        )}
-
         {promo && (
           <span className="absolute bottom-4 left-4 badge badge-oferta shadow-lg shadow-primary/20">
             {formatMessage(isThreshold ? siteSettings.messages.promo_badge_qty : siteSettings.messages.promo_badge, {
@@ -105,9 +101,9 @@ export default function ProductCard({ product, onClick }) {
           </span>
         )}
 
-        {weightPromo && Number(product.weight) > 0 && (
-          <span className="absolute bottom-4 right-4 badge badge-geo shadow-lg shadow-primary/20">
-            {weightPromo.discount_value}% OFF desde {formatWeight(weightPromo.min_weight)} acumulados
+        {!promo && weightPromo && Number(product.weight) > 0 && (
+          <span className="absolute bottom-4 left-4 badge badge-geo shadow-lg shadow-primary/20">
+            {weightPromo.discount_value}% OFF acumulando {formatWeight(weightPromo.min_weight)}
           </span>
         )}
 
@@ -171,6 +167,13 @@ export default function ProductCard({ product, onClick }) {
               <span className="text-[11px] font-semibold text-red-400 whitespace-nowrap">Sin stock</span>
             )}
           </div>
+
+          {promo && weightPromo && Number(product.weight) > 0 && (
+            <p className="flex items-center gap-1.5 text-[11px] text-primary-light/90 mb-4">
+              <HiOutlineSparkles size={13} className="shrink-0" />
+              {weightPromo.discount_value}% OFF acumulando {formatWeight(weightPromo.min_weight)} de esta categoría
+            </p>
+          )}
 
           <div className="flex items-center gap-2">
             <button

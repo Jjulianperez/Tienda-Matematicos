@@ -339,7 +339,7 @@ function ProductoDetalle({ id }) {
                 )}
                 {weightPromo && (
                   <span className="inline-block mt-2 badge badge-geo">
-                    {weightPromo.discount_value}% OFF desde {formatWeight(weightPromo.min_weight)} acumulados de{' '}
+                    {weightPromo.discount_value}% OFF acumulando {formatWeight(weightPromo.min_weight)} de{' '}
                     {product.categories?.name || 'la categoría'}
                   </span>
                 )}
