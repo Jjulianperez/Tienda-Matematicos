@@ -109,7 +109,7 @@ export function Modal({
           />
           <motion.div
             ref={contentRef}
-            className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${SIZE_CLASSES[size]}`}
+            className={`fixed inset-0 z-50 mx-auto flex items-center justify-center p-4 ${SIZE_CLASSES[size]}`}
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}

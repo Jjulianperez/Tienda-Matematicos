@@ -21,10 +21,12 @@ export default function AdminDashboard() {
           fetch('/api/orders', { headers: { Authorization: `Bearer ${token}` } })
         ])
         const [products, orders] = await Promise.all([productsRes.json(), ordersRes.json()])
-        
-        const lowStock = products.filter(p => p.stock !== null && p.stock > 0 && p.stock <= 5).length
-        setStats({ products: products.length, orders: orders.length, pending: orders.filter(o => o.status === 'pending').length, lowStock })
-        setRecentOrders(orders.slice(0, 5))
+
+        const productList = Array.isArray(products) ? products : []
+        const orderList = Array.isArray(orders) ? orders : []
+        const lowStock = productList.filter(p => p.stock !== null && p.stock > 0 && p.stock <= 5).length
+        setStats({ products: productList.length, orders: orderList.length, pending: orderList.filter(o => o.status === 'pending').length, lowStock })
+        setRecentOrders(orderList.slice(0, 5))
       } catch (err) {
         console.error(err)
       } finally {
