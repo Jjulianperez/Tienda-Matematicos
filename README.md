@@ -1,75 +1,158 @@
 # MateMáticos
 
-Tienda online de **mates, bombillas, termos, yerbas y accesorios** para el mate. Identidad visual oscura (carbon + olive `#6E8B3D`) con tipografías Fraunces / Space Grotesk y detalles matemáticos (π, √x, fórmulas) que dan identidad a la marca.
+Tienda online de **mates, bombillas, termos, yerbas y accesorios** para el mate. Identidad visual oscura con acentos en verde oliva, tipografías Fraunces y Space Grotesk, y detalles matemáticos que dan identidad a la marca.
+
+## Características
+
+- **Catálogo** con buscador, filtros por categoría, ordenamiento y badges de oferta
+- **Detalle de producto** con galería de imágenes, beneficios y botón de compra
+- **Carrito de compras** con persistencia en `localStorage`
+- **Checkout por WhatsApp** — los pedidos se envían directamente al número del negocio
+- **Promociones automáticas** por cantidad mínima de productos por categoría
+- **Combos** a precio fijo con composición de productos
+- **Descuentos por peso acumulado** en categorías
+- **Panel de administración** privado con gestión de productos, promociones, pedidos y configuración
+- **Notificación de mensualidad** que recuerda el pago del servicio a partir del día 13 de cada mes
+- **Bloqueo manual del panel admin** controlado por una variable centralizada
+- **Diseño responsive** optimizado para desktop, tablet y mobile
+- **Animaciones** con framer-motion, GSAP y scroll suave con Lenis
 
 ## Stack
 
-- **Next.js 16.2.12** (App Router + Turbopack) y **React 19**
-- **Tailwind CSS v4** (PostCSS)
-- **Supabase** (PostgreSQL): productos, categorías, pedidos, promociones y admins
-- **Cloudinary**: subida y almacenamiento de imágenes de producto
-- **framer-motion 12** + **GSAP** + **Lenis 1.3** (scroll suave)
-- **react-icons 5**
-- Deploy en **Vercel**
+| Capa | Tecnología |
+|------|-----------|
+| Framework | [Next.js 16](https://nextjs.org/) (App Router + Turbopack) |
+| UI | [React 19](https://react.dev/) + [Tailwind CSS v4](https://tailwindcss.com/) |
+| Animaciones | [Framer Motion](https://www.framer.com/motion/) + [GSAP](https://gsap.com/) + [Lenis](https://lenis.darkroom.engineering/) |
+| Base de datos | [Supabase](https://supabase.com/) (PostgreSQL) |
+| Imágenes | [Cloudinary](https://cloudinary.com/) |
+| Email | [Resend](https://resend.com/) |
+| Despliegue | [Vercel](https://vercel.com/) |
 
-## Negocio y cómo funciona la venta
+## Cómo funciona la venta
 
-- **Venta por WhatsApp**: el checkout no usa pasarela de pagos. El carrito arma un pedido y lo envía por mensaje a `wa.me` con el número de WhatsApp del negocio (`NEXT_PUBLIC_WHATSAPP_NUMBER`). Cada pedido se registra además en Supabase con su número, items, precios y datos del cliente.
-- **Promos automáticas por categoría**: una promoción define `min_quantity` y un descuento (`percent` o `fixed`). Cuando el carrito supera la cantidad mínima de productos de esa categoría, el precio unitario se ajusta en vivo (`getEffectiveUnitPrice` en `lib/pricing.js`).
-- **Combos**: son una línea de precio fijo: el admin define el combo, la imagen, el precio y los items que lo componen; se vende como un único ítem.
-- **Admin**: panel privado accesible **solo por URL** (`/admin/login`, sin enlace público en la web). El login valida contra la tabla `admins` con JWT y bcrypt.
+La tienda opera sin pasarela de pagos. El flujo es:
 
-## Estructura
+1. El cliente browsa el catálogo y agrega productos al carrito
+2. Al confirmar, se genera un pedido con número, items, precios y datos del cliente
+3. Se envía un mensaje por **WhatsApp** al número del negocio con el resumen del pedido
+4. El pedido se registra en Supabase para seguimiento desde el panel admin
+
+## Estructura del proyecto
 
 ```
 app/
-  page.js               # Home con animaciones y decoración geométrica
-  catalogo/page.js      # Catálogo con buscador, filtros, orden y chips "En oferta"
-  producto/[id]/page.js # Detalle de producto (envío, beneficios, agregar/comprar)
-  carrito/page.js       # Checkout por WhatsApp
-  admin/                # dashboard, login, productos, promociones, ordenes
-  api/                  # auth, categories, products, orders, promotions, upload
+  page.js                     Home con animaciones y decoración geométrica
+  catalogo/page.js            Catálogo con buscador, filtros y chips de oferta
+  producto/[id]/page.js       Detalle de producto
+  carrito/page.js             Checkout por WhatsApp
+  admin/                      Panel de administración
+    login/page.js             Login del admin
+    dashboard/page.js         Dashboard con estadísticas
+    productos/page.js         CRUD de productos
+    promociones/page.js       Gestión de promociones y combos
+    ordenes/page.js           Listado de pedidos
+    configuracion/page.js     Configuración general
+  api/                        API routes (auth, products, orders, etc.)
 components/
-  Header.jsx, Footer.jsx, SmoothScroll.jsx
-  ProductCard.jsx, ProductGrid.jsx, ComboCard.jsx, Modal.jsx
-  CartSidebar.jsx, CartIcon.jsx
-  admin/  # AdminLayout (panel lateral), FormModal, ProductSelect, fields (kit de pestañas)
-  ui/     # GeometricDecor (fórmulas SVG de fondo)
-context/CartContext.jsx # Carrito (localStorage, key "matematicos-cart")
+  Header.jsx, Footer.jsx      Navegación y pie de página
+  ProductCard.jsx             Tarjeta de producto
+  ProductGrid.jsx             Grilla responsive de productos
+  ComboCard.jsx               Tarjeta de combos
+  Modal.jsx                   Sistema de modales (Alert, Confirm, Toast)
+  CartSidebar.jsx             Sidebar del carrito
+  SmoothScroll.jsx            Wrapper de Lenis
+  admin/
+    AdminLayout.jsx           Layout del panel admin (sidebar + header)
+    AdminBlockedScreen.jsx    Pantalla de panel bloqueado
+    PaymentNotice.jsx         Notificación mensual de pago
+    FormModal.jsx             Modal de formularios
+    fields.jsx                Kit de componentes de formulario
+  ui/
+    GeometricDecor.jsx        Decoraciones SVG geométricas
+    LoadingModal.jsx          Modal de carga
+    CartIcon.jsx              Ícono del carrito
+context/
+  CartContext.jsx              Estado global del carrito (localStorage)
 lib/
-  supabase.js, auth.js, cloudinary.js, email.js (Resend)
-  pricing.js  # precios efectivos con promos y combos
-  images.js   # utilidades de imágenes
-  lenisLock.js + animations.js
-supabase-schema.sql      # Migración pendiente de aplicar en Supabase
+  admin-config.js             Configuración del panel admin
+  supabase.js                 Cliente Supabase
+  auth.js                     Autenticación JWT
+  pricing.js                  Lógica de precios, promos y combos
+  cloudinary.js               Utilidades de Cloudinary
+  email.js                    Envío de emails con Resend
+  images.js                   Utilidades de imágenes
+  settings.js                 Configuración del admin (Supabase)
+  site-settings.js            Configuración pública del sitio
+supabase-schema.sql           Schema de base de datos
 ```
+
+## Variables de entorno
+
+Copiar `.env.example` a `.env.local` y completar:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variable | Descripción |
+|----------|------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Key anónima de Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | Key de servicio de Supabase |
+| `JWT_SECRET` | Secreto para JWT (generar con `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) |
+| `CLOUDINARY_CLOUD_NAME` | Nombre del cloud de Cloudinary |
+| `CLOUDINARY_API_KEY` | API key de Cloudinary |
+| `CLOUDINARY_API_SECRET` | API secret de Cloudinary |
+| `RESEND_API_KEY` | API key de Resend |
+| `RESEND_TO_EMAIL` | Email destino para notificaciones |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER` | Número de WhatsApp del negocio (código de país + número) |
 
 ## Setup
 
 ```bash
+# Instalar dependencias
 npm install
-npm run dev      # http://localhost:3000
-npm run build    # build de producción
+
+# Base de datos
+# Ejecutar supabase-schema.sql en el SQL Editor de Supabase
+# Crear el admin:
+node scripts/create-admin.js admin@ejemplo.com tu-contraseña
+
+# Desarrollo
+npm run dev          # http://localhost:3000
+
+# Producción
+npm run build
+npm run start
+
+# Lint
 npm run lint
 ```
 
-Variables de entorno (ver `.env.example`): URL y claves de Supabase, Cloudinary, `NEXT_PUBLIC_WHATSAPP_NUMBER`, secreto JWT y credenciales de Resend.
+## Panel de administración
 
-### Base de datos
+Accesible en `/admin/login` (sin enlace público en la web). Login con JWT y bcrypt contra la tabla `admins`.
 
-Ejecutar `supabase-schema.sql` en el **SQL Editor** del proyecto Supabase (`esatyxgwuzsunnlsztqr`). Crea las tablas `categories`, `products`, `orders`, `promotions`, `promotion_items` y `admins`, y las categorías por defecto. Después crear el admin con `node scripts/create-admin.js`.
+### Bloqueo del panel
 
-> **Pendiente**: las tablas `promotions`/`promotion_items` todavía **no existen** en Supabase (error PGRST205). El admin de promociones y las secciones de home/catálogo dependen de aplicar esa migración.
+En `lib/admin-config.js` se encuentra la configuración centralizada:
 
-## Decisiones técnicas relevantes
+```js
+export const ADMIN_PANEL_ENABLED = true   // panel operativo
+export const PAYMENT_DUE_DAY = 13         // día de cobro mensual
+export const PAYMENT_TIMEZONE = 'America/Argentina/Buenos_Aires'
+```
 
-- **Lupa y placeholder del buscador**: `pl-12`/`pr-10` (dentro de `@layer utilities` en Tailwind v4) eran pisados por `.input-dark` (sin capa), porque en CSS una regla sin capa gana a las capas. Se resolvió con clases propias `.input-search`/`.input-select` (sin capa, definidas después de `.input-dark`) que garantizan el padding.
-- **Lupa del catálogo**: se centra con flexbox (`inset-y-0 flex items-center`) en vez de `top-1/2 -translate-y-1/2`, que rasterizaba el trazo diagonal del SVG.
-- **Scroll con Lenis**: Lenis intercepta el scroll global; los contenedores con scroll interno usan `data-lenis-prevent` y los modales llaman `stopLenis()`/`startLenis()` (`lib/lenisLock.js`).
-- **Chevron del select**: `<svg>` superpuesto en vez de `background-image` inline (que se repetía en algunos navegadores).
-- **Menú mobile**: vive dentro del `<header>` sticky para que no se despegue al hacer scroll.
-- **Admin sin acceso público**: se quitó el ícono de usuario del header y el link del menú mobile; solo por URL directa.
+- `ADMIN_PANEL_ENABLED = true` → el panel funciona normalmente
+- `ADMIN_PANEL_ENABLED = false` → el panel muestra una pantalla de bloqueo
 
-## Verificación
+La tienda pública **no se ve afectada** por este cambio.
 
-- `npm run build` y `npm run lint` pasan (0 errores; solo warnings pre-existentes de `<img>` en el admin, que se pueden migrar a `next/image`).
+### Notificación de mensualidad
+
+A partir del día 13 de cada mes, se muestra un recordatorio al administrador al ingresar al panel. La notificación se cierra una vez por mes usando `localStorage` (`monthly_payment_notice_YYYY_MM`).
+
+## Licencia
+
+Proyecto privado.
