@@ -15,6 +15,9 @@ import {
   HiOutlineBars3,
   HiOutlineXMark,
 } from 'react-icons/hi2'
+import { ADMIN_PANEL_ENABLED } from '@/lib/admin-config'
+import AdminBlockedScreen from '@/components/admin/AdminBlockedScreen'
+import PaymentNotice from '@/components/admin/PaymentNotice'
 
 const NAV = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: HiOutlineSquares2X2 },
@@ -116,6 +119,10 @@ export default function AdminLayout({ title, children }) {
     </aside>
   )
 
+  if (!ADMIN_PANEL_ENABLED) {
+    return <AdminBlockedScreen />
+  }
+
   return (
     <div className="min-h-screen bg-carbon flex">
       {/* Sidebar desktop */}
@@ -152,6 +159,8 @@ export default function AdminLayout({ title, children }) {
 
         <main className="flex-1">{children}</main>
       </div>
+
+      <PaymentNotice />
     </div>
   )
 }
