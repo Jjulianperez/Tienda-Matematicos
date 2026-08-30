@@ -1,8 +1,9 @@
 'use client'
 
 import { createContext, useContext, useReducer, useEffect } from 'react'
-import { computeSalePrice } from '@/lib/pricing'
-import { getWeightPromos, getWeightPromosNow } from '@/lib/weight-promos'
+import { computeSalePrice, findBestWeightPromo } from '@/lib/pricing'
+import { getWeightPromosNow } from '@/lib/weight-promos'
+import { useWeightPromos } from '@/hooks/useWeightPromos'
 
 const CartContext = createContext(null)
 
@@ -78,30 +79,12 @@ export function getEffectiveUnitPrice(item, allItems, weightPromos = getWeightPr
     }
   }
 
-  if (Array.isArray(weightPromos) && weightPromos.length && Number(item.weight) > 0 && item.categoryId) {
-    const totalWeight = allItems
-      .filter(i => i.type !== 'combo' && i.categoryId === item.categoryId && Number(i.weight) > 0)
-      .reduce((sum, i) => sum + Number(i.weight) * (i.quantity || 1), 0)
-
-    const best = weightPromos
-      .filter(p => p.category_id === item.categoryId && Number(p.min_weight) > 0 && totalWeight >= Number(p.min_weight))
-      .sort((a, b) => Number(b.discount_value) - Number(a.discount_value) || Number(b.min_weight) - Number(a.min_weight))[0]
-
-    if (best) {
-      const weightPrice = computeSalePrice(base, 'percent', best.discount_value)
-      if (weightPrice < price) price = weightPrice
-    }
-  }
-
   return price
 }
 
 export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [], isOpen: false })
-
-  useEffect(() => {
-    getWeightPromos()
-  }, [])
+  const weightPromos = useWeightPromos()
 
   useEffect(() => {
     try {
@@ -130,10 +113,20 @@ export function CartProvider({ children }) {
   const subtotal = state.items.reduce((sum, item) => {
     return sum + getEffectiveUnitPrice(item, state.items) * item.quantity
   }, 0)
+
+  const weightDiscount = state.items.reduce((acc, item) => {
+    if (item.type === 'combo' || Number(item.weight) <= 0 || !weightPromos?.length) return acc
+    const best = findBestWeightPromo(item.categoryId, weightPromos, state.items)
+    if (!best) return acc
+    const weightedPrice = computeSalePrice(Number(item.price), 'percent', best.discount_value)
+    return acc + (Number(item.price) - weightedPrice) * item.quantity
+  }, 0)
+
+  const total = subtotal - weightDiscount
   const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0)
 
   return (
-    <CartContext.Provider value={{ state, addItem, removeItem, updateQuantity, clearCart, openCart, closeCart, toggleCart, subtotal, totalItems }}>
+    <CartContext.Provider value={{ state, addItem, removeItem, updateQuantity, clearCart, openCart, closeCart, toggleCart, total, subtotal, weightDiscount, totalItems }}>
       {children}
     </CartContext.Provider>
   )
