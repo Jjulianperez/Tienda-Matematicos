@@ -100,7 +100,7 @@ function categoryQty(items, categoryId) {
 }
 
 export function CartSidebar() {
-  const { state, removeItem, updateQuantity, closeCart, subtotal, totalItems } = useCart()
+  const { state, removeItem, updateQuantity, closeCart, subtotal, weightDiscount, total, totalItems } = useCart()
   const weightPromos = useWeightPromos()
 
   const handleCheckout = () => {
@@ -165,8 +165,6 @@ export function CartSidebar() {
                   const wp = item.type !== 'combo' && Number(item.weight) > 0 && weightPromos?.length
                     ? findBestWeightPromo(item.categoryId, weightPromos, state.items)
                     : null
-                  const weightPrice = wp ? computeSalePrice(Number(item.price), 'percent', wp.discount_value) : null
-                  const isWeightDiscounted = weightPrice !== null && unitPrice === weightPrice
                   const isDiscounted = item.type !== 'combo' && item.promo && item.promo.min_quantity <= 1 && unitPrice < Number(item.price)
 
                   let promoNote = ''
@@ -177,9 +175,9 @@ export function CartSidebar() {
                     }
                   }
                   if (!promoNote && item.type !== 'combo' && Number(item.weight) > 0 && weightPromos?.length) {
-                    if (wp && isWeightDiscounted) {
+                    if (wp) {
                       promoNote = `${wp.discount_value}% OFF por peso: se descuenta sobre el total`
-                    } else if (!wp) {
+                    } else {
                       const catWeight = state.items
                         .filter(i => i.type !== 'combo' && i.categoryId === item.categoryId && Number(i.weight) > 0)
                         .reduce((s, i) => s + Number(i.weight) * (i.quantity || 1), 0)

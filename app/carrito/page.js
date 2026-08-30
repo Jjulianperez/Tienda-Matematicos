@@ -126,7 +126,7 @@ function CartItem({ item, unitPrice, isDiscounted, promoNote, onUpdate, onRemove
 }
 
 export default function CarritoPage() {
-  const { state, removeItem, updateQuantity, clearCart, subtotal, totalItems } = useCart()
+  const { state, removeItem, updateQuantity, clearCart, subtotal, weightDiscount, total, totalItems } = useCart()
   const siteSettings = useSiteSettings()
   const weightPromos = useWeightPromos()
   const [formData, setFormData] = useState({ customer_name: '', customer_phone: '' })
@@ -212,7 +212,7 @@ export default function CarritoPage() {
         formatMessage(siteSettings.messages.wa_cart, {
           order_number: result.order_number,
           items: lines.join('\n'),
-          subtotal: subtotal.toLocaleString('es-AR'),
+          subtotal: total.toLocaleString('es-AR'),
           customer_name: formData.customer_name,
           customer_phone: formData.customer_phone,
         })
@@ -278,8 +278,6 @@ export default function CarritoPage() {
                   const wp = item.type !== 'combo' && Number(item.weight) > 0 && weightPromos?.length
                     ? findBestWeightPromo(item.categoryId, weightPromos, state.items)
                     : null
-                  const weightPrice = wp ? computeSalePrice(Number(item.price), 'percent', wp.discount_value) : null
-                  const isWeightDiscounted = weightPrice !== null && unitPrice === weightPrice
                   const isDiscounted = item.type !== 'combo' && item.promo && item.promo.min_quantity <= 1 && unitPrice < Number(item.price)
 
                   let promoNote = ''
@@ -290,12 +288,14 @@ export default function CarritoPage() {
                     }
                   }
                   if (!promoNote && item.type !== 'combo' && Number(item.weight) > 0 && weightPromos?.length) {
-                    if (wp && isWeightDiscounted) {
-                      promoNote = `${wp.discount_value}% OFF por peso: se descuenta sobre el total`
-                    } else if (!wp) {
-                      const catWeight = state.items
-                        .filter(i => i.type !== 'combo' && i.categoryId === item.categoryId && Number(i.weight) > 0)
-                        .reduce((s, i) => s + Number(i.weight) * (i.quantity || 1), 0)
+                    const catWeight = state.items
+                      .filter(i => i.type !== 'combo' && i.categoryId === item.categoryId && Number(i.weight) > 0)
+                      .reduce((s, i) => s + Number(i.weight) * (i.quantity || 1), 0)
+                    if (wp) {
+                      if (catWeight) {
+                        promoNote = `${wp.discount_value}% OFF por peso: se descuenta sobre el total`
+                      }
+                    } else {
                       const first = weightPromos
                         .filter(p => p.category_id === item.categoryId && Number(p.min_weight) > 0)
                         .sort((a, b) => Number(a.min_weight) - Number(b.min_weight))[0]
@@ -340,42 +340,29 @@ export default function CarritoPage() {
                       <span className="text-white/40 text-xs">Se coordina por WhatsApp</span>
                     </div>
                     {(() => {
-                      const weightSavings = state.items.reduce((acc, item) => {
-                        if (item.type === 'combo' || Number(item.weight) <= 0 || !weightPromos?.length) return acc
-                        const eff = getEffectiveUnitPrice(item, state.items)
-                        const wpItem = findBestWeightPromo(item.categoryId, weightPromos, state.items)
-                        const wPrice = wpItem ? computeSalePrice(Number(item.price), 'percent', wpItem.discount_value) : null
-                        if (wPrice !== null && eff === wPrice) return acc + (Number(item.price) - eff) * item.quantity
-                        return acc
-                      }, 0)
-                      const totalSavings = state.items.reduce((acc, item) => {
+                      const promoSavings = state.items.reduce((acc, item) => {
                         if (item.type === 'combo') return acc
                         const eff = getEffectiveUnitPrice(item, state.items)
                         return acc + (Number(item.price) - eff) * item.quantity
                       }, 0)
-                      const promoSavings = totalSavings - weightSavings
-                      return (
-                        <>
-                          {promoSavings > 1 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-primary-light/80">Descuentos aplicados</span>
-                              <span className="text-primary-light font-medium">−${promoSavings.toLocaleString('es-AR')}</span>
-                            </div>
-                          )}
-                          {weightSavings > 1 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-primary-light/80">Descuento por peso</span>
-                              <span className="text-primary-light font-medium">−${weightSavings.toLocaleString('es-AR')}</span>
-                            </div>
-                          )}
-                        </>
-                      )
+                      return promoSavings > 1 ? (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-primary-light/80">Descuentos aplicados</span>
+                          <span className="text-primary-light font-medium">−${promoSavings.toLocaleString('es-AR')}</span>
+                        </div>
+                      ) : null
                     })()}
+                    {weightDiscount > 1 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-primary-light/80">Descuento por peso</span>
+                        <span className="text-primary-light font-medium">−${weightDiscount.toLocaleString('es-AR')}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-end justify-between pt-4 mt-4 border-t border-white/10">
                     <span className="text-sm font-medium text-white/70">Total</span>
                     <span className="font-display font-bold text-2xl sm:text-3xl text-primary-light">
-                      ${subtotal.toLocaleString('es-AR')}
+                      ${total.toLocaleString('es-AR')}
                     </span>
                   </div>
                 </div>
@@ -446,7 +433,7 @@ export default function CarritoPage() {
                 Total ({totalItems} {totalItems === 1 ? 'ítem' : 'ítems'})
               </p>
               <p className="font-display font-bold text-xl text-primary-light">
-                ${subtotal.toLocaleString('es-AR')}
+                ${total.toLocaleString('es-AR')}
               </p>
             </div>
             <button
