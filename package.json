@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:customers": "node scripts/test-customers.js",
+    "seed:customers": "node scripts/seed-customers.js"
   },
   "dependencies": {
     "@studio-freight/lenis": "^1.0.42",
