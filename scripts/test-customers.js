@@ -11,12 +11,14 @@ const {
   formatPhoneDisplay,
   sanitizeSearchTerm,
   normalizeTags,
+  summarizePurchaseRows,
   PURCHASE_STATUSES,
 } = loadLibModule('customers.js', [
   'normalizePhone',
   'formatPhoneDisplay',
   'sanitizeSearchTerm',
   'normalizeTags',
+  'summarizePurchaseRows',
   'PURCHASE_STATUSES',
 ])
 
@@ -137,6 +139,71 @@ for (const [input, expected] of [
 ]) {
   const got = normalizeTags(input)
   check(JSON.stringify(got) === JSON.stringify(expected), JSON.stringify(input), got, expected)
+}
+
+console.log('\n--- summarizePurchaseRows (pedidos vs lineas) ---')
+const C1 = 'cli-1'
+const C2 = 'cli-2'
+
+// Un pedido de 2 items llega como 2 filas con el mismo order_number -> 1 pedido.
+{
+  const { orderCounts, totalSpent } = summarizePurchaseRows([
+    { id: 'r1', customer_id: C1, order_number: 'P-1', price_at_order: 1000, quantity: 2 },
+    { id: 'r2', customer_id: C1, order_number: 'P-1', price_at_order: 500, quantity: 1 },
+  ])
+  check(orderCounts.get(C1) === 1, '2 lineas = 1 pedido', orderCounts.get(C1), 1)
+  check(totalSpent.get(C1) === 2500, 'suma 1000x2 + 500', totalSpent.get(C1), 2500)
+}
+
+// Filas legadas sin order_number: cada una es un pedido propio.
+{
+  const { orderCounts, totalSpent } = summarizePurchaseRows([
+    { id: 'r1', customer_id: C1, order_number: null, price_at_order: null, quantity: 1 },
+    { id: 'r2', customer_id: C1, order_number: null, price_at_order: null, quantity: 1 },
+    { id: 'r3', customer_id: C1, order_number: null, price_at_order: null, quantity: 1 },
+  ])
+  check(orderCounts.get(C1) === 3, '3 filas legadas = 3 pedidos', orderCounts.get(C1), 3)
+  check(totalSpent.get(C1) === 0, 'precio null no rompe', totalSpent.get(C1), 0)
+}
+
+// Regresion: si faltaran id Y order_number, antes colapsaban todos en una sola
+// clave. El listado mostraba menos pedidos que la ficha.
+{
+  const { orderCounts } = summarizePurchaseRows([
+    { customer_id: C1, order_number: null },
+    { customer_id: C1, order_number: null },
+    { customer_id: C1, order_number: null },
+  ])
+  check(orderCounts.get(C1) === 3, 'sin id ni numero no colapsa', orderCounts.get(C1), 3)
+}
+
+// Mezcla: 2 lineas del mismo pedido + 2 filas legadas = 3 pedidos.
+{
+  const { orderCounts } = summarizePurchaseRows([
+    { id: 'a', customer_id: C1, order_number: 'P-9' },
+    { id: 'b', customer_id: C1, order_number: 'P-9' },
+    { id: 'c', customer_id: C1, order_number: null },
+    { id: 'd', customer_id: C1, order_number: null },
+  ])
+  check(orderCounts.get(C1) === 3, '2 lineas + 2 legadas = 3', orderCounts.get(C1), 3)
+}
+
+// Los clientes no se mezclan y lo que no tiene cliente se ignora.
+{
+  const { orderCounts, totalSpent } = summarizePurchaseRows([
+    { id: 'a', customer_id: C1, order_number: 'P-1', price_at_order: 100, quantity: 1 },
+    { id: 'b', customer_id: C2, order_number: 'P-2', price_at_order: 200, quantity: 3 },
+    { id: 'c', customer_id: null, order_number: 'P-3', price_at_order: 999, quantity: 1 },
+  ])
+  check(orderCounts.get(C1) === 1 && orderCounts.get(C2) === 1, 'cada cliente su pedido', `${orderCounts.get(C1)}/${orderCounts.get(C2)}`, '1/1')
+  check(totalSpent.get(C2) === 600, '200 x 3 = 600', totalSpent.get(C2), 600)
+  check(orderCounts.has(null) === false, 'sin customer_id se ignora', orderCounts.has(null), false)
+}
+
+// Entradas raras no rompen.
+for (const weird of [null, undefined, [], 'texto', 42]) {
+  const { orderCounts } = summarizePurchaseRows(weird)
+  check(orderCounts.size === 0, `no rompe con ${show(weird)}`, orderCounts.size, 0)
 }
 
 console.log('\n--- PURCHASE_STATUSES ---')
