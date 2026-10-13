@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "test:customers": "node scripts/test-customers.js",
-    "seed:customers": "node scripts/seed-customers.js"
+    "test:finance": "node scripts/test-finance.js",
+    "test": "npm run test:customers && npm run test:finance",
+    "seed:customers": "node scripts/seed-customers.js",
+    "purge:test-orders": "node scripts/purge-test-orders.js"
   },
   "dependencies": {
     "@studio-freight/lenis": "^1.0.42",
