@@ -54,6 +54,7 @@ app/
     promociones/page.js       Gestión de promociones y combos
     ordenes/page.js           Listado de pedidos
     clientes/page.js          CRM de clientes
+    finanzas/page.js          Resumen de facturación mensual
     configuracion/page.js     Configuración general
   api/                        API routes (auth, products, orders, customers, etc.)
 components/
@@ -87,12 +88,16 @@ lib/
   settings.js                 Configuración del admin (Supabase)
   site-settings.js            Configuración pública del sitio
   customers.js                Normalización de teléfonos y lógica del CRM
+  finance.js                  Cálculo de facturación mensual
+  format.js                   Formato de montos, fechas y porcentajes
 supabase/
   migrations/                 Migraciones versionadas (aditivas)
 scripts/
   create-admin.js             Alta del usuario admin
   seed-customers.js           Backfill: pedidos antiguos → clientes
+  purge-test-orders.js        Borra pedidos de prueba (simulación por defecto)
   test-customers.js           Tests del normalizador de teléfonos
+  test-finance.js             Tests del cálculo de facturación
   _load-lib.js                Puente para usar lib/ desde scripts CommonJS
 supabase-schema.sql           Schema de base de datos (legacy, usar migraciones)
 ```
@@ -147,18 +152,19 @@ aditivos e idempotentes. `supabase-schema.sql` queda como referencia histórica
 para bases creadas antes de este cambio.
 
 ```bash
-# Base ya existente: aplicar solo la migración nueva
-#   (pegar 002_customers.sql en el SQL Editor de Supabase)
+# Base ya existente: aplicar solo las migraciones nuevas, en orden
+#   (pegar 002_customers.sql y 003_finance.sql en el SQL Editor de Supabase)
 
 # Base nueva: aplicar en orden
 #   001_init.sql
 #   002_customers.sql
+#   003_finance.sql
 
 # Luego, vincular los pedidos ya existentes al CRM (idempotente)
 npm run seed:customers
 
-# Tests de la lógica de teléfonos
-npm run test:customers
+# Tests (lógica de teléfonos y de finanzas)
+npm run test
 ```
 
 Ver `supabase/migrations/README.md` para el detalle.
@@ -204,6 +210,32 @@ Dos decisiones que conviene no romper:
 
 Si en el futuro se agregan estados de pedido (`preparing`, `shipped`, `delivered`),
 hay que sumarlos a `PURCHASE_STATUSES` en `lib/customers.js`.
+
+## Finanzas
+
+`/admin/finanzas` muestra cuánto facturó la tienda, mes a mes. La lógica vive en
+`lib/finance.js` y se expone en `GET /api/finance`.
+
+Es **facturación, no ganancia**: se suma lo cobrado, no lo que queda después de
+costos. Para ganancia hace falta cargar `products.cost` (la columna existe desde
+la migración `003_finance.sql`, pero todavía no hay pantalla para completarla).
+
+Cuatro decisiones que conviene no romper:
+
+- **Una venta cuenta en el mes en que se confirmó**, no en el que se pidió. De
+  eso se ocupa `orders.confirmed_at`, que mantiene un trigger: no depende de que
+  la aplicación se acuerde de setearlo.
+- **Los meses sin movimiento se muestran igual, en cero.** Un hueco en la serie
+  parece un error; un cero se entiende.
+- **Cada venta se agrupa por `order_number`, no por fila.** En `orders` hay una
+  fila por ítem, así que un carrito de 3 productos es un pedido, no tres. Eso
+  afecta el conteo de pedidos y el ticket promedio.
+- **Las canceladas se muestran aparte y tachadas.** Nunca suman a la
+  facturación, pero se ven: si no, el número grande mentiría.
+
+La zona horaria es siempre `America/Argentina/Buenos_Aires` (`lib/finance.js`),
+porque el servidor corre en UTC y una venta de las 22:00 del 31 se iría al mes
+siguiente.
 
 ## Licencia
 
