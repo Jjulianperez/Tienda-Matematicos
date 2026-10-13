@@ -295,3 +295,66 @@ export function useToast() {
 
   return { toasts, show, dismiss }
 }
+
+// Tarjeta individual del stack. No se autoelimina sola por portal: el padre
+// decide cuándo sacarla de la lista, así AnimatePresence puede animar la salida.
+function ToastCard({ toast, onClose }) {
+  // onClose (que viene de useToast) cambia de identidad en cada render. Si
+  // estuviera en las deps, el timer se reiniciaría en cada render y el aviso
+  // nunca se cerraría. Con el ref, el timer depende solo del toast.
+  const closeRef = useRef(onClose)
+  useEffect(() => { closeRef.current = onClose })
+
+  useEffect(() => {
+    const timer = setTimeout(() => closeRef.current?.(toast.id), toast.duration ?? 4000)
+    return () => clearTimeout(timer)
+  }, [toast.id, toast.duration])
+
+  const IconComponent = ICONS[toast.type] || ICONS.info
+  const iconColor = ICON_COLORS[toast.type] || ICON_COLORS.info
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+      className="pointer-events-auto flex items-center gap-3 px-5 py-4 card-dark rounded-xl border border-white/10 shadow-lg w-full sm:w-80"
+      role="alert"
+      aria-live="polite"
+    >
+      <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+        {IconComponent && <IconComponent className={`w-5 h-5 ${iconColor}`} />}
+      </div>
+      <p className="text-sm text-white/90 flex-1">{toast.message}</p>
+      <button
+        onClick={() => closeRef.current?.(toast.id)}
+        className="flex-shrink-0 p-1 text-white/40 hover:text-white transition-colors"
+        aria-label="Cerrar"
+      >
+        <HiOutlineXMark size={18} />
+      </button>
+    </motion.div>
+  )
+}
+
+// Apila los avisos de useToast en una sola columna (el Toast suelto usa
+// position:fixed y si se muestran varios se pisarían uno encima del otro).
+// Uso:
+//   const { toasts, show, dismiss } = useToast()
+//   <ToastStack toasts={toasts} onClose={dismiss} />
+export function ToastStack({ toasts, onClose }) {
+  if (typeof window === 'undefined') return null
+
+  return createPortal(
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 max-w-[calc(100vw-3rem)]">
+      <AnimatePresence initial={false}>
+        {toasts.map(toast => (
+          <ToastCard key={toast.id} toast={toast} onClose={onClose} />
+        ))}
+      </AnimatePresence>
+    </div>,
+    document.body
+  )
+}

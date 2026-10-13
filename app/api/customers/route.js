@@ -95,12 +95,25 @@ export async function GET(request) {
 
   const from = (page - 1) * perPage
 
+  // Etiquetas existentes, para poblar el filtro. Se leen todas en vez de
+  // deducirlas de la página visible: si no, al filtrar por una etiqueta
+  // desaparecerían las demás opciones y no se podría cambiar de filtro.
+  const { data: tagRows } = await supabaseAdmin
+    .from('customers')
+    .select('tags')
+    .not('tags', 'is', null)
+
+  const availableTags = [
+    ...new Set((tagRows || []).flatMap(row => row.tags || [])),
+  ].sort((a, b) => a.localeCompare(b, 'es'))
+
   return NextResponse.json({
     customers: enriched.slice(from, from + perPage),
     total: count ?? enriched.length,
     page,
     perPage,
     sort: sortKey,
+    available_tags: availableTags,
   })
 }
 
@@ -111,16 +124,21 @@ async function attachStats(customers) {
 
   const { data: orders } = await supabaseAdmin
     .from('orders')
-    .select('customer_id, price_at_order, quantity')
+    .select('customer_id, order_number, price_at_order, quantity')
     .in('status', PURCHASE_STATUSES)
     .in('customer_id', ids)
 
-  const orderCount = new Map()
+  // Un pedido puede tener varias líneas (una fila por ítem). Se cuentan
+  // PEDIDOS distintos, no filas: si no, un pedido de 2 ítems figuraría como 2
+  // en el listado y como 1 en el detalle. Las filas sin order_number cuentan
+  // como un pedido cada una.
+  const orderKeys = new Map()
   const totalSpent = new Map()
 
   for (const order of orders || []) {
     const key = order.customer_id
-    orderCount.set(key, (orderCount.get(key) || 0) + 1)
+    if (!orderKeys.has(key)) orderKeys.set(key, new Set())
+    orderKeys.get(key).add(order.order_number || order.id)
     const amount = Number(order.price_at_order || 0) * (Number(order.quantity) || 1)
     totalSpent.set(key, (totalSpent.get(key) || 0) + amount)
   }
@@ -128,7 +146,7 @@ async function attachStats(customers) {
   return customers.map(customer => ({
     ...customer,
     phone_display: customer.phone_display || formatPhoneDisplay(customer.phone),
-    order_count: orderCount.get(customer.id) || 0,
+    order_count: orderKeys.get(customer.id)?.size || 0,
     total_spent: totalSpent.get(customer.id) || 0,
   }))
 }
