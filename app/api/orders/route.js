@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { requireAdmin } from '@/lib/auth'
 import { sendNewOrderNotification } from '@/lib/email'
 import { attachPromoInfo, computeSalePrice, computeWeightPrice } from '@/lib/pricing'
+import { upsertCustomerForOrder } from '@/lib/customers'
 
 function generateOrderNumber() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789'
@@ -152,6 +153,20 @@ export async function POST(request) {
       customerName: row.customer_name,
       customerPhone: row.customer_phone,
     }).catch(() => {})
+  }
+
+  // Alta o actualización del cliente en el CRM. Va después del insert para no
+  // agregar latencia al checkout, y nunca debe romper la venta: si falla, el
+  // pedido ya está guardado y el cliente se puede crear desde /admin/clientes.
+  try {
+    await upsertCustomerForOrder({
+      supabase: supabaseAdmin,
+      orderNumber,
+      phone: customerPhone,
+      name: customerName,
+    })
+  } catch (customerError) {
+    console.error('No se pudo registrar el cliente:', customerError)
   }
 
   if (body.product_id) {
