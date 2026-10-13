@@ -11,7 +11,8 @@ Tienda online de **mates, bombillas, termos, yerbas y accesorios** para el mate.
 - **Promociones automáticas** por cantidad mínima de productos por categoría
 - **Combos** a precio fijo con composición de productos
 - **Descuentos por peso acumulado** en categorías
-- **Panel de administración** privado con gestión de productos, promociones, pedidos y configuración
+- **Panel de administración** privado con gestión de productos, promociones, pedidos, clientes y configuración
+- **CRM de clientes** con historial de compras, ticket promedio, notas y etiquetas
 - **Notificación de mensualidad** que recuerda el pago del servicio a partir del día 13 de cada mes
 - **Bloqueo manual del panel admin** controlado por una variable centralizada
 - **Diseño responsive** optimizado para desktop, tablet y mobile
@@ -52,8 +53,9 @@ app/
     productos/page.js         CRUD de productos
     promociones/page.js       Gestión de promociones y combos
     ordenes/page.js           Listado de pedidos
+    clientes/page.js          CRM de clientes
     configuracion/page.js     Configuración general
-  api/                        API routes (auth, products, orders, etc.)
+  api/                        API routes (auth, products, orders, customers, etc.)
 components/
   Header.jsx, Footer.jsx      Navegación y pie de página
   ProductCard.jsx             Tarjeta de producto
@@ -84,7 +86,15 @@ lib/
   images.js                   Utilidades de imágenes
   settings.js                 Configuración del admin (Supabase)
   site-settings.js            Configuración pública del sitio
-supabase-schema.sql           Schema de base de datos
+  customers.js                Normalización de teléfonos y lógica del CRM
+supabase/
+  migrations/                 Migraciones versionadas (aditivas)
+scripts/
+  create-admin.js             Alta del usuario admin
+  seed-customers.js           Backfill: pedidos antiguos → clientes
+  test-customers.js           Tests del normalizador de teléfonos
+  _load-lib.js                Puente para usar lib/ desde scripts CommonJS
+supabase-schema.sql           Schema de base de datos (legacy, usar migraciones)
 ```
 
 ## Variables de entorno
@@ -115,7 +125,7 @@ cp .env.example .env.local
 npm install
 
 # Base de datos
-# Ejecutar supabase-schema.sql en el SQL Editor de Supabase
+# Ejecutar supabase/migrations/001_init.sql en el SQL Editor de Supabase
 # Crear el admin:
 node scripts/create-admin.js admin@ejemplo.com tu-contraseña
 
@@ -129,6 +139,29 @@ npm run start
 # Lint
 npm run lint
 ```
+
+### Migraciones
+
+A partir de ahora el esquema se versiona en `supabase/migrations/`, con archivos
+aditivos e idempotentes. `supabase-schema.sql` queda como referencia histórica
+para bases creadas antes de este cambio.
+
+```bash
+# Base ya existente: aplicar solo la migración nueva
+#   (pegar 002_customers.sql en el SQL Editor de Supabase)
+
+# Base nueva: aplicar en orden
+#   001_init.sql
+#   002_customers.sql
+
+# Luego, vincular los pedidos ya existentes al CRM (idempotente)
+npm run seed:customers
+
+# Tests de la lógica de teléfonos
+npm run test:customers
+```
+
+Ver `supabase/migrations/README.md` para el detalle.
 
 ## Panel de administración
 
@@ -152,6 +185,25 @@ La tienda pública **no se ve afectada** por este cambio.
 ### Notificación de mensualidad
 
 A partir del día 13 de cada mes, se muestra un recordatorio al administrador al ingresar al panel. La notificación se cierra una vez por mes usando `localStorage` (`monthly_payment_notice_YYYY_MM`).
+
+## CRM de clientes
+
+Cada pedido queda enlazado a un cliente por `orders.customer_id`. El teléfono se
+normaliza en runtime (`lib/customers.js`), así que `+54 9 11 5555-4444`,
+`011 15 5555-4444` y `11 5555-4444` terminan en el mismo cliente.
+
+Dos decisiones que conviene no romper:
+
+- **Los totales se calculan al leer, no se guardan.** No hay contadores
+  desnormalizados en la tabla, así que no pueden desincronizarse cuando un
+  pedido se cancela o se borra. Si algún día hay muchos clientes, el siguiente
+  paso es una vista de Postgres (ya está la de ejemplo en la migración).
+- **Un cliente se crea al llegar el pedido, no al confirmarlo.** Así también
+  quedan registradas las consultas que nunca se convirtieron. Los estados
+  `pending` y `cancelled` no cuentan como compra.
+
+Si en el futuro se agregan estados de pedido (`preparing`, `shipped`, `delivered`),
+hay que sumarlos a `PURCHASE_STATUSES` en `lib/customers.js`.
 
 ## Licencia
 

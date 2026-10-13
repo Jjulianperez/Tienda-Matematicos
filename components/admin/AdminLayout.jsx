@@ -9,6 +9,7 @@ import {
   HiOutlineCube,
   HiOutlineClipboardDocumentList,
   HiOutlineTag,
+  HiOutlineUsers,
   HiOutlineCog6Tooth,
   HiOutlineHome,
   HiOutlineArrowRightOnRectangle,
@@ -24,6 +25,7 @@ const NAV = [
   { label: 'Productos', href: '/admin/productos', icon: HiOutlineCube },
   { label: 'Promociones', href: '/admin/promociones', icon: HiOutlineTag },
   { label: 'Órdenes', href: '/admin/ordenes', icon: HiOutlineClipboardDocumentList },
+  { label: 'Clientes', href: '/admin/clientes', icon: HiOutlineUsers },
   { label: 'Configuración', href: '/admin/configuracion', icon: HiOutlineCog6Tooth },
 ]
 

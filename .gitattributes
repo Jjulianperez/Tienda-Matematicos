@@ -1,0 +1,21 @@
+# Normalización de finales de línea para que el repositorio sea
+# determinista entre Windows, Linux (CI) y Vercel.
+#
+# Sin esto, core.autocrlf=true en Windows hace que `git status` marque
+# cientos de archivos como modificados mientras `git diff` sale vacío.
+
+* text=auto eol=lf
+
+# Archivos que deben permanecer en CRLF (Windows nativo)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binarios: nunca tocar
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
