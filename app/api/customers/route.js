@@ -7,6 +7,7 @@ import {
   formatPhoneDisplay,
   sanitizeSearchTerm,
   normalizeTags,
+  summarizePurchaseRows,
 } from '@/lib/customers'
 
 const FIELDS =
@@ -122,31 +123,25 @@ async function attachStats(customers) {
 
   const ids = customers.map(c => c.id)
 
+  // `id` hace falta: hay filas legadas sin order_number y se usan como clave
+  // propia (ver abajo). Sin seleccionarlo, todas colapsan en la misma clave
+  // `undefined` y el cliente figura con menos pedidos de los que tiene.
   const { data: orders } = await supabaseAdmin
     .from('orders')
-    .select('customer_id, order_number, price_at_order, quantity')
+    .select('id, customer_id, order_number, price_at_order, quantity')
     .in('status', PURCHASE_STATUSES)
     .in('customer_id', ids)
 
   // Un pedido puede tener varias líneas (una fila por ítem). Se cuentan
   // PEDIDOS distintos, no filas: si no, un pedido de 2 ítems figuraría como 2
   // en el listado y como 1 en el detalle. Las filas sin order_number cuentan
-  // como un pedido cada una.
-  const orderKeys = new Map()
-  const totalSpent = new Map()
-
-  for (const order of orders || []) {
-    const key = order.customer_id
-    if (!orderKeys.has(key)) orderKeys.set(key, new Set())
-    orderKeys.get(key).add(order.order_number || order.id)
-    const amount = Number(order.price_at_order || 0) * (Number(order.quantity) || 1)
-    totalSpent.set(key, (totalSpent.get(key) || 0) + amount)
-  }
+  // como un pedido cada una (por eso el select de arriba incluye `id`).
+  const { orderCounts, totalSpent } = summarizePurchaseRows(orders)
 
   return customers.map(customer => ({
     ...customer,
     phone_display: customer.phone_display || formatPhoneDisplay(customer.phone),
-    order_count: orderKeys.get(customer.id)?.size || 0,
+    order_count: orderCounts.get(customer.id) || 0,
     total_spent: totalSpent.get(customer.id) || 0,
   }))
 }
