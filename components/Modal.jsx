@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HiOutlineXMark, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiOutlineInformationCircle } from 'react-icons/hi2'
 import { createPortal } from 'react-dom'
+import { useMounted } from '@/lib/useMounted'
 
 const ICONS = {
   success: HiOutlineCheckCircle,
@@ -43,6 +44,10 @@ export function Modal({
   const overlayRef = useRef(null)
   const contentRef = useRef(null)
   const previousActiveElement = useRef(null)
+
+  // Mismo caso que en ToastStack: si el modal está visible en el primer render,
+  // decidir con `typeof window` rompe la hidratación.
+  const mounted = useMounted()
 
   useEffect(() => {
     if (isOpen) {
@@ -181,7 +186,7 @@ export function Modal({
     </AnimatePresence>
   )
 
-  if (typeof window === 'undefined') return null
+  if (!mounted) return null
 
   return createPortal(modalContent, document.body)
 }
@@ -345,7 +350,12 @@ function ToastCard({ toast, onClose }) {
 //   const { toasts, show, dismiss } = useToast()
 //   <ToastStack toasts={toasts} onClose={dismiss} />
 export function ToastStack({ toasts, onClose }) {
-  if (typeof window === 'undefined') return null
+  // Acá NO se puede usar `if (typeof window === 'undefined') return null`:
+  // como ToastStack se renderiza siempre, el servidor no renderiza nada y el
+  // cliente sí, y eso rompe la hidratación (#418) en toda página que lo use.
+  const mounted = useMounted()
+
+  if (!mounted || toasts.length === 0) return null
 
   return createPortal(
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3 max-w-[calc(100vw-3rem)]">

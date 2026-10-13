@@ -5,8 +5,14 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HiOutlineXMark } from 'react-icons/hi2'
 import { stopLenis, startLenis } from '@/lib/lenisLock'
+import { useMounted } from '@/lib/useMounted'
 
 export default function FormModal({ open, onClose, title, subtitle, children, footer, maxWidth = 'max-w-2xl' }) {
+  // No se puede decidir con `if (typeof window === 'undefined')`: el servidor no
+  // renderiza el portal y el cliente sí, así que se rompe la hidratación si el
+  // modal está visible en el primer render (error #418).
+  const mounted = useMounted()
+
   useEffect(() => {
     if (open) {
       stopLenis()
@@ -29,7 +35,7 @@ export default function FormModal({ open, onClose, title, subtitle, children, fo
     return () => document.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  if (typeof window === 'undefined') return null
+  if (!mounted) return null
 
   return createPortal(
     <AnimatePresence>
