@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireAdmin } from '@/lib/auth'
 import { buildFinanceReport } from '@/lib/finance'
+import { fetchAll } from '@/lib/supabase-pagination'
 
 function clamp(value, min, max) {
   if (!Number.isFinite(value)) return min
@@ -18,14 +19,20 @@ export async function GET(request) {
   // eterna si alguien pasa un número absurdo.
   const monthsBack = clamp(Number(searchParams.get('monthsBack')) || 12, 1, 36)
 
-  const { data: orders, error } = await supabaseAdmin
-    .from('orders')
-    .select(
-      'id, order_number, status, price_at_order, quantity, created_at, confirmed_at, product_id, product_name, combo_items'
+  // Se leen TODAS las órdenes: el reporte agrega por mes y no puede cortarse en
+  // 1000 filas (H6). fetchAll pide páginas hasta agotar la tabla.
+  let orders
+  try {
+    orders = await fetchAll(() =>
+      supabaseAdmin
+        .from('orders')
+        .select(
+          'id, order_number, status, price_at_order, quantity, created_at, confirmed_at, product_id, product_name, combo_items'
+        )
+        .order('created_at', { ascending: false })
+        .order('id')
     )
-    .order('created_at', { ascending: false })
-
-  if (error) {
+  } catch (error) {
     // Si todavía no corrió la migración 003, la columna confirmed_at no existe
     // y el error crudo de Postgres no dice nada útil.
     const missingColumn = /confirmed_at/.test(error.message)
@@ -40,7 +47,7 @@ export async function GET(request) {
     )
   }
 
-  const report = buildFinanceReport(orders || [], { monthsBack })
+  const report = buildFinanceReport(orders, { monthsBack })
 
   // Estado de los costos: sin products.cost no se puede calcular ganancia.
   // Si la migración 003 todavía no corrió, `cost` no existe y estas consultas

@@ -9,6 +9,7 @@ import {
   normalizeTags,
   summarizePurchaseRows,
 } from '@/lib/customers'
+import { fetchAll } from '@/lib/supabase-pagination'
 
 const FIELDS =
   'id, name, phone, phone_display, email, notes, tags, first_order_at, last_order_at, created_at'
@@ -16,6 +17,11 @@ const FIELDS =
 const SORTS = ['last_order_at', 'total_spent', 'name', 'created_at']
 
 const PER_PAGE_MAX = 100
+
+// Cuántos ids de cliente se mandan por consulta de pedidos. Con miles de
+// clientes, `.in()` con todos los ids supera el largo de URL y los totales
+// salían en 0 sin aviso (H7).
+const CUSTOMER_ID_CHUNK = 200
 
 // Compara por un campo ya enriquecido con las estadísticas (por eso `sort`
 // puede ser 'total_spent' aunque no sea una columna de customers).
@@ -61,7 +67,51 @@ export async function GET(request) {
     PER_PAGE_MAX
   )
 
-  let query = supabaseAdmin.from('customers').select(FIELDS, { count: 'exact' })
+  try {
+    // El orden por total_spent y order_count se calcula en memoria, así que
+    // hay que tener TODOS los clientes que matchean el filtro antes de
+    // ordenar y paginar. Leer solo la primera página daba un orden incorrecto.
+    const customers = await fetchAll(() => buildCustomersQuery(q, tag))
+
+    // Los totales no viven en la tabla: salen de un agregado sobre orders.
+    // Se calculan en cada request en vez de guardarse, así no pueden
+    // desincronizarse cuando una orden se cancela o se borra.
+    const enriched = await attachStats(customers)
+
+    enriched.sort((a, b) => compare(a, b, sortKey, order === 'asc' ? 1 : -1))
+
+    const from = (page - 1) * perPage
+
+    // Etiquetas existentes, para poblar el filtro. Se leen todas en vez de
+    // deducirlas de la página visible: si no, al filtrar por una etiqueta
+    // desaparecerían las demás opciones y no se podría cambiar de filtro.
+    const tagRows = await fetchAll(() =>
+      supabaseAdmin
+        .from('customers')
+        .select('id, tags')
+        .not('tags', 'is', null)
+        .order('id')
+    )
+
+    const availableTags = [
+      ...new Set(tagRows.flatMap(row => row.tags || [])),
+    ].sort((a, b) => a.localeCompare(b, 'es'))
+
+    return NextResponse.json({
+      customers: enriched.slice(from, from + perPage),
+      total: enriched.length,
+      page,
+      perPage,
+      sort: sortKey,
+      available_tags: availableTags,
+    })
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
+
+function buildCustomersQuery(q, tag) {
+  let query = supabaseAdmin.from('customers').select(FIELDS).order('id')
 
   if (q) {
     const term = sanitizeSearchTerm(q)
@@ -81,41 +131,7 @@ export async function GET(request) {
     query = query.contains('tags', [tag])
   }
 
-  const { data, error, count } = await query
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  // Los totales no viven en la tabla: salen de un agregado sobre orders.
-  // Se calculan en cada request en vez de guardarse, así no pueden
-  // desincronizarse cuando una orden se cancela o se borra.
-  const enriched = await attachStats(data || [])
-
-  enriched.sort((a, b) => compare(a, b, sortKey, order === 'asc' ? 1 : -1))
-
-  const from = (page - 1) * perPage
-
-  // Etiquetas existentes, para poblar el filtro. Se leen todas en vez de
-  // deducirlas de la página visible: si no, al filtrar por una etiqueta
-  // desaparecerían las demás opciones y no se podría cambiar de filtro.
-  const { data: tagRows } = await supabaseAdmin
-    .from('customers')
-    .select('tags')
-    .not('tags', 'is', null)
-
-  const availableTags = [
-    ...new Set((tagRows || []).flatMap(row => row.tags || [])),
-  ].sort((a, b) => a.localeCompare(b, 'es'))
-
-  return NextResponse.json({
-    customers: enriched.slice(from, from + perPage),
-    total: count ?? enriched.length,
-    page,
-    perPage,
-    sort: sortKey,
-    available_tags: availableTags,
-  })
+  return query
 }
 
 async function attachStats(customers) {
@@ -124,13 +140,21 @@ async function attachStats(customers) {
   const ids = customers.map(c => c.id)
 
   // `id` hace falta: hay filas legadas sin order_number y se usan como clave
-  // propia (ver abajo). Sin seleccionarlo, todas colapsan en la misma clave
-  // `undefined` y el cliente figura con menos pedidos de los que tiene.
-  const { data: orders } = await supabaseAdmin
-    .from('orders')
-    .select('id, customer_id, order_number, price_at_order, quantity')
-    .in('status', PURCHASE_STATUSES)
-    .in('customer_id', ids)
+  // propia (ver summarizePurchaseRows). Sin seleccionarlo, todas colapsan en la
+  // misma clave `undefined` y el cliente figura con menos pedidos de los que tiene.
+  const orders = []
+  for (let i = 0; i < ids.length; i += CUSTOMER_ID_CHUNK) {
+    const chunk = ids.slice(i, i + CUSTOMER_ID_CHUNK)
+    const rows = await fetchAll(() =>
+      supabaseAdmin
+        .from('orders')
+        .select('id, customer_id, order_number, price_at_order, quantity')
+        .in('status', PURCHASE_STATUSES)
+        .in('customer_id', chunk)
+        .order('id')
+    )
+    orders.push(...rows)
+  }
 
   // Un pedido puede tener varias líneas (una fila por ítem). Se cuentan
   // PEDIDOS distintos, no filas: si no, un pedido de 2 ítems figuraría como 2
