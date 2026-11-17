@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test:customers": "node scripts/test-customers.js",
     "test:finance": "node scripts/test-finance.js",
-    "test": "npm run test:customers && npm run test:finance",
+    "test:upload-validation": "node scripts/test-upload-validation.js",
+    "test": "npm run test:customers && npm run test:finance && npm run test:upload-validation",
     "seed:customers": "node scripts/seed-customers.js",
     "purge:test-orders": "node scripts/purge-test-orders.js"
   },
