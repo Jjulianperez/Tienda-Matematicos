@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireAdmin } from '@/lib/auth'
 import { attachPromoInfo } from '@/lib/pricing'
+import { PUBLIC_PRODUCT_COLUMNS } from '@/lib/product-columns'
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
@@ -10,7 +11,7 @@ export async function GET(request) {
 
   let query = supabaseAdmin
     .from('products')
-    .select('*, categories(name, slug)')
+    .select(`${PUBLIC_PRODUCT_COLUMNS}, categories(name, slug)`)
 
   if (category) {
     const { data: cat } = await supabaseAdmin

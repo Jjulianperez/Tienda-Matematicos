@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireAdmin } from '@/lib/auth'
 import { attachPromoInfo } from '@/lib/pricing'
+import { PUBLIC_PRODUCT_COLUMNS } from '@/lib/product-columns'
 
 export async function GET(request, { params }) {
   const { id } = await params
 
   const { data: product, error } = await supabaseAdmin
     .from('products')
-    .select('*, categories(name, slug)')
+    .select(`${PUBLIC_PRODUCT_COLUMNS}, categories(name, slug)`)
     .eq('id', id)
     .single()
 
