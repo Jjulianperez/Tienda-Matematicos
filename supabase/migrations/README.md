@@ -10,6 +10,8 @@ Este proyecto usa **migraciones aditivas**. A diferencia de un archivo monolíti
 
 `003_finance.sql` es re-ejecutable: agrega `orders.confirmed_at` (y sella las órdenes ya confirmadas con su `created_at`), instala el trigger que la mantiene al día, y agrega `products.cost` (todavía sin usar).
 
+`004_set_order_status.sql` crea la función `set_order_status`, que usa el PATCH de `/api/orders/[id]`. **Hay que ejecutarla antes de desplegar ese cambio**: sin ella, cambiar el estado de un pedido devuelve error.
+
 ### Base de datos nueva (desde cero)
 1. Ejecutá `001_init.sql` (foto del esquema base).
 2. Ejecutá `002_customers.sql`.

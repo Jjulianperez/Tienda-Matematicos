@@ -13,66 +13,21 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ error: 'Estado inválido' }, { status: 400 })
   }
 
-  const { data: order } = await supabaseAdmin
-    .from('orders')
-    .select('*')
-    .eq('id', id)
-    .single()
-
-  if (!order) {
-    return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 })
-  }
-
-  const targets = []
-  if (order.combo_items) {
-    for (const comp of order.combo_items) {
-      targets.push({ product_id: comp.product_id, quantity: comp.quantity })
-    }
-  } else if (order.product_id) {
-    targets.push({ product_id: order.product_id, quantity: order.quantity })
-  }
-
-  if (targets.length) {
-    const ids = targets.map(t => t.product_id)
-    const { data: products } = await supabaseAdmin
-      .from('products')
-      .select('id, stock')
-      .in('id', ids)
-
-    const stockMap = {}
-    for (const p of products || []) stockMap[p.id] = p.stock
-
-    if (status === 'confirmed') {
-      for (const t of targets) {
-        const newStock = (stockMap[t.product_id] ?? 0) - t.quantity
-        if (newStock < 0) {
-          return NextResponse.json({ error: 'Stock insuficiente para confirmar la orden' }, { status: 400 })
-        }
-        await supabaseAdmin
-          .from('products')
-          .update({ stock: newStock })
-          .eq('id', t.product_id)
-      }
-    } else if (status === 'cancelled' && order.status === 'confirmed') {
-      for (const t of targets) {
-        const newStock = (stockMap[t.product_id] ?? 0) + t.quantity
-        await supabaseAdmin
-          .from('products')
-          .update({ stock: newStock })
-          .eq('id', t.product_id)
-      }
-    }
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from('orders')
-    .update({ status })
-    .eq('id', id)
-    .select()
-    .single()
+  // Estado y stock cambian en una sola transacción (migración 004_set_order_status.sql).
+  const { data, error } = await supabaseAdmin.rpc('set_order_status', {
+    p_order_id: id,
+    p_status: status,
+  })
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const message = error.message || 'Error al actualizar la orden'
+    if (message.includes('no encontrada')) {
+      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 })
+    }
+    if (message.includes('Stock insuficiente') || message.includes('Estado inválido')) {
+      return NextResponse.json({ error: message }, { status: 400 })
+    }
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 
   return NextResponse.json(data)
