@@ -198,11 +198,13 @@ export async function POST(request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  for (const id of involvedIds) {
-    await supabaseAdmin
-      .from('products')
-      .update({ whatsapp_clicks: { inc: 1 } })
-      .eq('id', id)
+  // Contador de clics: un solo UPDATE atómico (migración 005_increment_clicks.sql).
+  // Si falla, no afecta al pedido, que ya está guardado.
+  const { error: clicksError } = await supabaseAdmin.rpc('increment_whatsapp_clicks', {
+    p_product_ids: [...involvedIds],
+  })
+  if (clicksError) {
+    console.error('No se pudieron registrar los clics:', clicksError.message)
   }
 
   for (const row of data) {
