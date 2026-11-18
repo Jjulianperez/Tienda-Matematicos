@@ -23,6 +23,7 @@ const MIGRATIONS = [
   '003_finance.sql',
   '006_giveaways.sql',
   '007_giveaways_rpc.sql',
+  '008_giveaways_support.sql',
 ]
 
 let failures = 0
@@ -84,7 +85,7 @@ async function main() {
   } catch (error) {
     secondPass = error.message
   }
-  check('las migraciones 006 y 007 se pueden aplicar dos veces', secondPass, 'ok')
+  check('las migraciones 006, 007 y 008 se pueden aplicar dos veces', secondPass, 'ok')
 
   // -------------------------------------------------------------------------
   // Auxiliares de datos
@@ -555,7 +556,37 @@ async function main() {
     WHERE n.nspname = 'public' AND c.relkind = 'r' AND relname LIKE 'giveaway%' AND NOT relrowsecurity`)).length, 0)
 
   // -------------------------------------------------------------------------
-  // 12. Un borrador se puede borrar con todo lo suyo
+  // 12. Límite de peticiones y resúmenes del panel
+  // -------------------------------------------------------------------------
+  {
+    const hit = (bucket, limit = 3, window = 60) =>
+      one('SELECT giveaway_rate_limit_hit($1, $2, $3) AS ok', [bucket, limit, window]).then(r => r.ok)
+    const results = []
+    for (let i = 0; i < 5; i++) results.push(await hit('enter:ip-a'))
+    check('el límite deja pasar hasta el tope y bloquea después', results, [true, true, true, false, false])
+    check('otra clave tiene su propio contador', await hit('enter:ip-b'), true)
+    check('un límite inválido es rechazado', await failsWith('rate_limit_invalid', () => hit('x', 0)), 'ok')
+
+    await q(`UPDATE giveaway_rate_limits SET window_start = window_start - interval '3 days'`)
+    check('el cron borra las ventanas viejas', (await one('SELECT giveaway_rate_limit_purge() AS n')).n >= 2, true)
+    check('tras la purga el contador arranca de nuevo', await hit('enter:ip-a'), true)
+
+    const overview = (await one('SELECT giveaway_admin_overview($1::uuid) AS r', [g1.id])).r
+    check('el resumen cuenta participantes, tickets y evidencias', [overview.participants, overview.tickets, overview.pending_evidence, overview.approved_evidence, overview.rejected_evidence], [6, 7, 0, 7, 1])
+
+    const list = (await one('SELECT giveaway_admin_list() AS r')).r
+    const row = list.find(item => item.id === g1.id)
+    check('la lista incluye el sorteo con sus conteos', [list.length > 3, row.status, row.participants, row.tickets], [true, 'completed', 6, 7])
+    check('la lista no trae la semilla ni datos de contacto', JSON.stringify(list).includes(g1.seed) || JSON.stringify(list).includes('5426570'), false)
+
+    check('anon no puede usar el límite de peticiones', await failsWith('permission denied', () =>
+      asRole('anon', () => q("SELECT giveaway_rate_limit_hit('x', 1, 60)"))), 'ok')
+    check('anon no lee el resumen del panel', await failsWith('permission denied', () =>
+      asRole('anon', () => q('SELECT giveaway_admin_list()'))), 'ok')
+  }
+
+  // -------------------------------------------------------------------------
+  // 13. Un borrador se puede borrar con todo lo suyo
   // -------------------------------------------------------------------------
   {
     const g = await newGiveaway()

@@ -16,6 +16,7 @@ Ejecutalas en ese orden, después de 001 a 003. Son aditivas: crean tablas y fun
 - Las reglas viven en la base: máquina de estados, congelamiento de participaciones al cerrar, máximo de dos oportunidades por persona, un único resultado por sorteo y auditoría que no se puede editar ni borrar.
 - RLS queda activado en todas las tablas, sin policies, y las funciones solo las puede ejecutar `service_role`. La clave anon no puede leer ni llamar nada de sorteos.
 - Se prueban contra PostgreSQL real con `npm run test:giveaway-db` (usa `@electric-sql/pglite`, no toca ninguna base).
+- `008_giveaways_support.sql` agrega el límite de peticiones para los endpoints públicos (contador compartido en la base, porque en serverless uno en memoria no sirve) y los resúmenes del panel admin.
 - Los números 004 y 005 los usan las correcciones de pedidos (`004_set_order_status.sql` y `005_increment_clicks.sql`), que están en sus propias ramas.
 
 ### Base de datos nueva (desde cero)
