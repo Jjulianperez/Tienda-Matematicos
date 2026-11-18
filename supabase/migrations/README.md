@@ -10,6 +10,14 @@ Este proyecto usa **migraciones aditivas**. A diferencia de un archivo monolíti
 
 `003_finance.sql` es re-ejecutable: agrega `orders.confirmed_at` (y sella las órdenes ya confirmadas con su `created_at`), instala el trigger que la mantiene al día, y agrega `products.cost` (todavía sin usar).
 
+### Sorteos (`006_giveaways.sql` y `007_giveaways_rpc.sql`)
+Ejecutalas en ese orden, después de 001 a 003. Son aditivas: crean tablas y funciones nuevas (todas con prefijo `giveaway`) y solo agregan la columna `admins.role` (los admins actuales quedan como `owner`). Ambas se pueden volver a ejecutar sin error.
+
+- Las reglas viven en la base: máquina de estados, congelamiento de participaciones al cerrar, máximo de dos oportunidades por persona, un único resultado por sorteo y auditoría que no se puede editar ni borrar.
+- RLS queda activado en todas las tablas, sin policies, y las funciones solo las puede ejecutar `service_role`. La clave anon no puede leer ni llamar nada de sorteos.
+- Se prueban contra PostgreSQL real con `npm run test:giveaway-db` (usa `@electric-sql/pglite`, no toca ninguna base).
+- Los números 004 y 005 los usan las correcciones de pedidos (`004_set_order_status.sql` y `005_increment_clicks.sql`), que están en sus propias ramas.
+
 ### Base de datos nueva (desde cero)
 1. Ejecutá `001_init.sql` (foto del esquema base).
 2. Ejecutá `002_customers.sql`.

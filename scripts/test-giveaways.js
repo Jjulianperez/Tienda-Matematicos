@@ -301,6 +301,15 @@ async function main() {
     }
 
     check('un sorteo honesto verifica', (await draw.verifyDraw(base)).ok, true)
+
+    // jsonb de PostgreSQL devuelve las claves en otro orden; no debe importar.
+    const reordered = result.results.map(r => ({
+      ticket_number: r.ticket_number,
+      participant_id: r.participant_id,
+      position: r.position,
+      role: r.role,
+    }))
+    check('verifica aunque las claves del JSON vengan en otro orden', (await draw.verifyDraw({ ...base, results: reordered })).ok, true)
     check(
       'detecta una semilla distinta a la comprometida',
       (await draw.verifyDraw({ ...base, seedHex: seedFor('x') })).ok,

@@ -10,7 +10,8 @@
     "test:customers": "node scripts/test-customers.js",
     "test:finance": "node scripts/test-finance.js",
     "test:giveaways": "node scripts/test-giveaways.js",
-    "test": "npm run test:customers && npm run test:finance && npm run test:giveaways",
+    "test:giveaway-db": "node scripts/test-giveaway-db.js",
+    "test": "npm run test:customers && npm run test:finance && npm run test:giveaways && npm run test:giveaway-db",
     "seed:customers": "node scripts/seed-customers.js",
     "purge:test-orders": "node scripts/purge-test-orders.js"
   },
