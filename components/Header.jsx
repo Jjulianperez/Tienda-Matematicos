@@ -73,6 +73,9 @@ export default function Header() {
                 <Link href="/catalogo?categoria=termos" className="text-sm text-white/60 hover:text-white transition-colors">
                   Termos
                 </Link>
+                <Link href="/sorteos" className="text-sm text-white/60 hover:text-white transition-colors">
+                  Sorteos
+                </Link>
               </nav>
             </div>
 
@@ -125,6 +128,7 @@ export default function Header() {
                   { label: 'Catálogo', href: '/catalogo' },
                   { label: 'Mates', href: '/catalogo?categoria=mates' },
                   { label: 'Termos', href: '/catalogo?categoria=termos' },
+                  { label: 'Sorteos', href: '/sorteos' },
                 ].map((item) => (
                   <Link
                     key={item.label}
