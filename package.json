@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test:customers": "node scripts/test-customers.js",
     "test:finance": "node scripts/test-finance.js",
-    "test": "npm run test:customers && npm run test:finance",
+    "test:giveaways": "node scripts/test-giveaways.js",
+    "test": "npm run test:customers && npm run test:finance && npm run test:giveaways",
     "seed:customers": "node scripts/seed-customers.js",
     "purge:test-orders": "node scripts/purge-test-orders.js"
   },
@@ -29,6 +30,7 @@
     "resend": "^6.18.1"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
