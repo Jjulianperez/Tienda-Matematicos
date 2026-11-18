@@ -59,6 +59,8 @@ export default function AdminSorteoDetalle() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('resumen')
   const [editing, setEditing] = useState(false)
+  // true justo después de ejecutar el sorteo: la animación se abre sola, una vez.
+  const [playDraw, setPlayDraw] = useState(false)
   const { toasts, show, dismiss } = useToast()
 
   // show cambia de identidad en cada render: se guarda en un ref y se le pasa
@@ -109,6 +111,7 @@ export default function AdminSorteoDetalle() {
 
   const handleDrawn = () => {
     setTab('resultado')
+    setPlayDraw(true)
     load()
   }
 
@@ -166,7 +169,15 @@ export default function AdminSorteoDetalle() {
               <EvidencePanel giveaway={giveaway} canReview={['active', 'closing'].includes(status)} onChanged={load} toast={toast} />
             )}
             {tab === 'participantes' && <ParticipantsPanel giveaway={giveaway} toast={toast} />}
-            {tab === 'resultado' && <ResultPanel giveaway={giveaway} winners={data.winners} draws={data.draws} />}
+            {tab === 'resultado' && (
+              <ResultPanel
+                giveaway={giveaway}
+                winners={data.winners}
+                draws={data.draws}
+                autoPlay={playDraw && status === 'completed'}
+                onAutoPlayDone={() => setPlayDraw(false)}
+              />
+            )}
             {tab === 'actividad' && <AuditPanel audit={data.audit} />}
           </>
         )}

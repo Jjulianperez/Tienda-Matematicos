@@ -8,6 +8,7 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import GeometricDecor from '@/components/ui/GeometricDecor'
 import VerifyDraw from '@/components/giveaways/VerifyDraw'
+import DrawStage from '@/components/giveaways/draw/DrawStage'
 import { formatDateTime } from '@/lib/format'
 import { publicFetch, readStoredToken, STATUS_META, KIND_LABELS, SLOT_LABELS } from '@/lib/giveaways/ui'
 
@@ -21,6 +22,7 @@ export default function SorteoPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
+  const [replaying, setReplaying] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -121,6 +123,9 @@ export default function SorteoPage() {
                       </li>
                     ))}
                   </ol>
+                  <button type="button" onClick={() => setReplaying(true)} className="btn-outline mt-6">
+                    Ver el sorteo
+                  </button>
                   {alternates.length > 0 && (
                     <div className="mt-8">
                       <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">Suplentes, en orden</h3>
@@ -204,6 +209,21 @@ export default function SorteoPage() {
         </div>
       </main>
       <Footer />
+
+      {replaying && giveaway && (
+        <DrawStage
+          format={giveaway.format}
+          totalTickets={giveaway.tickets_count || 1}
+          title={giveaway.title}
+          winners={(data.winners || []).map(w => ({
+            role: w.role,
+            position: w.position,
+            ticket_number: w.ticket_number,
+            name: w.first_name,
+          }))}
+          onClose={() => setReplaying(false)}
+        />
+      )}
     </>
   )
 }

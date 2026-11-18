@@ -24,6 +24,16 @@ const evidence = loadLibModule('giveaways/evidence.js', [
 ])
 const tokens = loadLibModule('giveaways/tokens.js', ['deriveAccessToken', 'isValidAccessToken'])
 const { requirementStates } = loadLibModule('giveaways/participation.js', ['requirementStates'])
+const stage = loadLibModule('giveaways/stage.js', [
+  'wheelSegmentCount',
+  'segmentOfTicket',
+  'segmentRange',
+  'wheelTargetRotation',
+  'angleUnderPointer',
+  'numberBlock',
+  'spinDurationMs',
+  'rollDelays',
+])
 
 let failures = 0
 
@@ -222,6 +232,67 @@ async function main() {
     check('un rechazo trae su motivo', [rejected.state, rejected.rejection_reason], ['rejected', 'No se ve'])
     check('la respuesta de otro requisito no se confunde', states([], [{ requirement_id: 'd' }]), ['missing', 'missing', 'missing', 'submitted'])
     check('una lista vacía no rompe', requirementStates(undefined, undefined, undefined), [])
+  }
+
+  // -------------------------------------------------------------------------
+  // Animaciones: la presentación termina exactamente en el ticket ganador
+  // -------------------------------------------------------------------------
+  {
+    check('pocos tickets: un segmento por ticket', [stage.wheelSegmentCount(1), stage.wheelSegmentCount(7)], [1, 7])
+    check('muchos tickets: 36 segmentos como máximo', [stage.wheelSegmentCount(500), stage.wheelSegmentCount(50000)], [36, 36])
+
+    // Para varias combinaciones: cada ticket cae en un segmento, y el rango de
+    // ese segmento lo contiene; los rangos cubren todos los tickets sin huecos.
+    let outOfRange = 0
+    let gaps = 0
+    for (const total of [1, 2, 5, 10, 36, 37, 100, 1000, 12345]) {
+      const segments = stage.wheelSegmentCount(total)
+      let expectedStart = 1
+      for (let i = 0; i < segments; i++) {
+        const range = stage.segmentRange(i, total, segments)
+        if (range.start !== expectedStart || range.end < range.start) gaps++
+        expectedStart = range.end + 1
+      }
+      if (expectedStart !== total + 1) gaps++
+
+      for (let ticket = 1; ticket <= total; ticket += Math.max(1, Math.floor(total / 200))) {
+        const index = stage.segmentOfTicket(ticket, total, segments)
+        const range = stage.segmentRange(index, total, segments)
+        if (index < 0 || index >= segments || ticket < range.start || ticket > range.end) outOfRange++
+      }
+      // Los extremos siempre caen dentro.
+      for (const ticket of [1, total]) {
+        const index = stage.segmentOfTicket(ticket, total, segments)
+        const range = stage.segmentRange(index, total, segments)
+        if (ticket < range.start || ticket > range.end) outOfRange++
+      }
+    }
+    check('los rangos de la ruleta cubren todos los tickets sin huecos', gaps, 0)
+    check('cada ticket cae en el segmento cuyo rango lo contiene', outOfRange, 0)
+
+    // La flecha termina dentro del segmento del ganador.
+    let missed = 0
+    for (const [ticket, total] of [[1, 10], [10, 10], [7, 100], [250, 1000], [12345, 12345], [3, 3]]) {
+      const segments = stage.wheelSegmentCount(total)
+      const index = stage.segmentOfTicket(ticket, total, segments)
+      const arc = 360 / segments
+      const angle = stage.angleUnderPointer(stage.wheelTargetRotation(index, segments, ticket))
+      if (angle < index * arc || angle > (index + 1) * arc) missed++
+    }
+    check('la aguja de la ruleta frena sobre el segmento ganador', missed, 0)
+    check('la ruleta da vueltas completas antes de frenar', stage.wheelTargetRotation(0, 10, 1, 5) > 360 * 4, true)
+
+    check('bloque de números del ticket 1', stage.numberBlock(1, 5000), { start: 1, end: 100, count: 100, offset: 0 })
+    check('bloque del ticket 250', stage.numberBlock(250, 5000), { start: 201, end: 300, count: 100, offset: 49 })
+    check('último bloque incompleto', stage.numberBlock(1234, 1234), { start: 1201, end: 1234, count: 34, offset: 33 })
+    check('con menos de 100 tickets hay un solo bloque', stage.numberBlock(3, 7), { start: 1, end: 7, count: 7, offset: 2 })
+
+    check('pocos ganadores: 6,5 s cada uno', [stage.spinDurationMs(1), stage.spinDurationMs(3)], [6500, 6500])
+    check('muchos ganadores: más corto', stage.spinDurationMs(10), 3500)
+
+    const delays = stage.rollDelays(6500)
+    check('las pausas suman la duración pedida', Math.round(delays.reduce((a, b) => a + b, 0)), 6500)
+    check('el número frena de a poco (pausas crecientes)', delays.every((d, i) => i === 0 || d >= delays[i - 1]), true)
   }
 
   if (failures > 0) {

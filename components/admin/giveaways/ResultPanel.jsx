@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { SectionCard } from '@/components/admin/fields'
 import VerifyDraw from '@/components/giveaways/VerifyDraw'
+import DrawStage from '@/components/giveaways/draw/DrawStage'
 import { formatDateTime } from '@/lib/format'
 
 function WinnerList({ title, items }) {
@@ -33,8 +34,16 @@ function WinnerList({ title, items }) {
 
 // Resultado del sorteo. Los ganadores se muestran con sus datos de contacto
 // (solo en el panel; la web pública solo muestra el nombre de pila).
-export default function ResultPanel({ giveaway, winners, draws }) {
+export default function ResultPanel({ giveaway, winners, draws, autoPlay = false, onAutoPlayDone }) {
   const [publicData, setPublicData] = useState(null)
+  const [playing, setPlaying] = useState(false)
+
+  // Se abre al tocar el botón, o solo (una vez) justo después de ejecutar el sorteo.
+  const showStage = winners.length > 0 && (playing || autoPlay)
+  const closeStage = () => {
+    setPlaying(false)
+    onAutoPlayDone?.()
+  }
 
   // Los mismos datos públicos que usa cualquier persona para verificar.
   useEffect(() => {
@@ -64,6 +73,11 @@ export default function ResultPanel({ giveaway, winners, draws }) {
           <div className="space-y-6">
             <WinnerList title="Ganadores" items={group('winner')} />
             <WinnerList title="Suplentes (en orden)" items={group('alternate')} />
+            {giveaway.status === 'completed' && (
+              <button type="button" onClick={() => setPlaying(true)} className="btn-outline">
+                Reproducir el sorteo
+              </button>
+            )}
           </div>
         )}
 
@@ -75,6 +89,21 @@ export default function ResultPanel({ giveaway, winners, draws }) {
       </SectionCard>
 
       {giveaway.status === 'completed' && publicData && <VerifyDraw data={publicData} />}
+
+      {showStage && (
+        <DrawStage
+          format={giveaway.format}
+          totalTickets={giveaway.tickets_count || 1}
+          title={giveaway.title}
+          winners={winners.map(w => ({
+            role: w.role,
+            position: w.position,
+            ticket_number: w.ticket_number,
+            name: w.participant?.full_name || 'Participante',
+          }))}
+          onClose={closeStage}
+        />
+      )}
     </div>
   )
 }
