@@ -13,7 +13,8 @@
     "test:giveaway-db": "node scripts/test-giveaway-db.js",
     "test:giveaway-server": "node scripts/test-giveaway-server.js",
     "test:giveaway-stage": "node scripts/test-giveaway-stage.js",
-    "test": "npm run test:customers && npm run test:finance && npm run test:giveaways && npm run test:giveaway-server && npm run test:giveaway-stage && npm run test:giveaway-db",
+    "test:image-resize": "node scripts/test-image-resize.js",
+    "test": "npm run test:customers && npm run test:finance && npm run test:giveaways && npm run test:giveaway-server && npm run test:giveaway-stage && npm run test:image-resize && npm run test:giveaway-db",
     "setup:giveaway-storage": "node scripts/setup-giveaway-storage.js",
     "seed:customers": "node scripts/seed-customers.js",
     "purge:test-orders": "node scripts/purge-test-orders.js"

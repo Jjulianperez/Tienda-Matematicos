@@ -97,8 +97,9 @@ export default function GiveawayFormModal({ giveaway, onSaved, onCancel, onError
           </p>
         )}
 
-        <TextInput label="Título" required value={form.title} onChange={set('title')} placeholder="Sorteo de verano" />
+        <TextInput label="Título" required value={form.title} onChange={set('title')} placeholder="Sorteo de verano" autoComplete="off" />
 
+        {/* El enlace es un identificador, no un texto: sin mayúsculas ni autocorrección automáticas del teclado. */}
         <TextInput
           label="Enlace"
           value={form.slug}
@@ -106,6 +107,10 @@ export default function GiveawayFormModal({ giveaway, onSaved, onCancel, onError
           disabled={locked.slug}
           placeholder="sorteo-de-verano"
           hint="Va en la dirección: /sorteos/enlace. Si lo dejás vacío se arma con el título."
+          autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
         />
 
         <TextInput label="Premio" required value={form.prize_name} onChange={set('prize_name')} disabled={locked.prize_name} placeholder="Kit matero completo" />
@@ -124,13 +129,16 @@ export default function GiveawayFormModal({ giveaway, onSaved, onCancel, onError
           <DateTimeField label="Cierre" required value={form.ends_at} onChange={value => setForm(prev => ({ ...prev, ends_at: value }))} disabled={locked.ends_at} />
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-5">
-          <TextInput label="Ganadores" type="number" min={1} max={100} required value={form.winners_count} onChange={set('winners_count')} disabled={locked.winners_count} />
-          <TextInput label="Suplentes" type="number" min={0} max={100} value={form.alternates_count} onChange={set('alternates_count')} disabled={locked.alternates_count} />
-          <Select label="Oportunidades por persona" value={form.max_opportunities} onChange={set('max_opportunities')} disabled={locked.max_opportunities}>
-            <option value={1}>1 (solo la inicial)</option>
-            <option value={2}>2 (inicial + adicional)</option>
-          </Select>
+        {/* Ganadores y suplentes son números cortos: van lado a lado en el celular y teclado numérico. */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5">
+          <TextInput label="Ganadores" type="number" inputMode="numeric" min={1} max={100} required value={form.winners_count} onChange={set('winners_count')} disabled={locked.winners_count} />
+          <TextInput label="Suplentes" type="number" inputMode="numeric" min={0} max={100} value={form.alternates_count} onChange={set('alternates_count')} disabled={locked.alternates_count} />
+          <div className="col-span-2 sm:col-span-1">
+            <Select label="Oportunidades por persona" value={form.max_opportunities} onChange={set('max_opportunities')} disabled={locked.max_opportunities}>
+              <option value={1}>1 (solo la inicial)</option>
+              <option value={2}>2 (inicial + adicional)</option>
+            </Select>
+          </div>
         </div>
 
         <Select label="Formato visual del sorteo" value={form.format} onChange={set('format')}>

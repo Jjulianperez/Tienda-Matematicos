@@ -9,7 +9,8 @@ import AdminLayout from '@/components/admin/AdminLayout'
 import { Confirm, useToast } from '@/components/Modal'
 import FormModal from '@/components/admin/FormModal'
 import LoadingModal from '@/components/ui/LoadingModal'
-import { Field, TextInput, TextArea, Select, Toggle, Tabs, SectionCard, FormActions, inputCls } from '@/components/admin/fields'
+import { prepareImageForUpload } from '@/lib/image-resize'
+import { TextInput, TextArea, Select, Toggle, Tabs, SectionCard, FormActions } from '@/components/admin/fields'
 
 function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess }) {
   const [tab, setTab] = useState('info')
@@ -25,40 +26,55 @@ function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess
   })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(null)
   const [error, setError] = useState('')
 
+  // Se pueden elegir varias fotos de una vez (en el celular, varias de la
+  // galería). Cada una se achica en el navegador antes de subirla (una foto de
+  // cámara pesa más de lo que acepta el servidor) y se suben de a una, así una
+  // que falla no pierde a las demás.
   const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const input = e.target
+    const files = Array.from(input.files || [])
+    if (files.length === 0) return
 
     setUploading(true)
     setError('')
 
     const token = localStorage.getItem('token')
-    const formData = new FormData()
-    formData.append('image', file)
+    let failed = 0
 
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      })
+    for (let i = 0; i < files.length; i++) {
+      setProgress({ done: i, total: files.length })
+      try {
+        const prepared = await prepareImageForUpload(files[i])
+        const formData = new FormData()
+        formData.append('image', prepared)
 
-      if (!res.ok) throw new Error('Error al subir imagen')
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        })
+        if (!res.ok) throw new Error('Error al subir imagen')
 
-      const { url } = await res.json()
-      setForm({ ...form, images: [...form.images, url] })
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setUploading(false)
-      e.target.value = ''
+        const { url } = await res.json()
+        setForm(prev => ({ ...prev, images: [...prev.images, url] }))
+      } catch {
+        failed += 1
+      }
     }
+
+    if (failed > 0) {
+      setError(files.length === 1 ? 'Error al subir imagen' : `No se pudieron subir ${failed} de ${files.length} imágenes`)
+    }
+    setUploading(false)
+    setProgress(null)
+    input.value = ''
   }
 
   const removeImage = (idx) => {
-    setForm({ ...form, images: form.images.filter((_, i) => i !== idx) })
+    setForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }))
   }
 
   const handleSubmit = async (e) => {
@@ -133,8 +149,8 @@ function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess
         <Tabs tabs={tabs} active={tab} onChange={setTab} />
 
         {tab === 'info' && (
-          <SectionCard title="Información básica" description="Nombre, descripción y categoría">
-            <div className="grid sm:grid-cols-2 gap-6">
+          <SectionCard flat title="Información básica" description="Nombre, descripción y categoría">
+            <div className="grid sm:grid-cols-2 gap-5 sm:gap-6">
               <div className="sm:col-span-2">
                 <TextInput
                   label="Nombre"
@@ -178,11 +194,13 @@ function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess
 
         {tab === 'images' && (
           <SectionCard
+            flat
             title="Imágenes del producto"
             description="La primera imagen es la portada en la tienda"
             icon={HiOutlinePhoto}
           >
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+            {/* Dos columnas en el celular: las fotos se ven de un tamaño útil. */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
               {form.images.map((img, i) => (
                 <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-white/5 border border-white/10">
                   <Image
@@ -192,71 +210,79 @@ function ProductForm({ product, categories, onSave, onCancel, onError, onSuccess
                     className="object-cover"
                     sizes="200px"
                   />
+                  {/* 44 x 44 px con el dedo (pantalla táctil), más chico con el mouse. */}
                   <button
                     type="button"
                     onClick={() => removeImage(i)}
-                    className="absolute top-1.5 right-1.5 p-2 rounded-lg bg-black/85 text-white hover:bg-black border border-white/20 shadow-md transition-colors"
+                    className="absolute right-1.5 top-1.5 inline-flex size-9 pointer-coarse:size-11 items-center justify-center rounded-lg bg-black/85 text-white hover:bg-black border border-white/20 shadow-md transition-colors"
                     aria-label={`Quitar imagen ${i + 1}`}
                   >
-                    <HiOutlineXMark size={16} />
+                    <HiOutlineXMark size={18} aria-hidden="true" />
                   </button>
                   {i === 0 && (
                     <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 badge badge-geo">Principal</span>
                   )}
                 </div>
               ))}
-              <label className={`flex flex-col items-center justify-center gap-2 aspect-square rounded-xl border-2 border-dashed border-white/10 hover:border-primary/40 text-white/40 hover:text-primary-light cursor-pointer transition-all ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                <HiOutlinePlus size={22} />
-                <span className="text-xs font-medium">{uploading ? 'Subiendo...' : 'Agregar'}</span>
+              {/* El input de archivo queda en pantalla (invisible) y no oculto con display:none: así se puede enfocar con el teclado. */}
+              <label className={`flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-white/15 text-white/55 transition-all hover:border-primary/40 hover:text-primary-light has-[:focus-visible]:border-primary has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/30 ${uploading ? 'pointer-events-none opacity-60' : ''}`}>
+                <HiOutlinePlus size={22} aria-hidden="true" />
+                <span className="px-2 text-center text-xs font-medium">
+                  {uploading
+                    ? progress && progress.total > 1 ? `Subiendo ${progress.done + 1} de ${progress.total}...` : 'Subiendo...'
+                    : 'Agregar fotos'}
+                </span>
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleImageUpload}
                   disabled={uploading}
-                  className="hidden"
+                  className="sr-only"
                 />
               </label>
             </div>
+            <p className="mt-4 text-xs leading-relaxed text-white/50">
+              Podés elegir varias fotos a la vez. Se achican solas para que suban rápido, también con datos móviles.
+            </p>
           </SectionCard>
         )}
 
         {tab === 'stock' && (
-          <SectionCard title="Inventario" description="Precio, peso y stock disponible" icon={HiOutlineCog6Tooth}>
-            <div className="grid sm:grid-cols-3 gap-6">
-              <Field label="Precio ($)" required>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.price}
-                  onChange={e => setForm({ ...form, price: e.target.value })}
-                  className={`${inputCls} text-lg font-display font-semibold`}
-                  required
-                />
-              </Field>
-              <Field
+          <SectionCard flat title="Inventario" description="Precio, peso y stock disponible" icon={HiOutlineCog6Tooth}>
+            {/* inputMode pide el teclado de números: con decimales para el precio y solo dígitos para el resto. */}
+            <div className="grid sm:grid-cols-3 gap-5 sm:gap-6">
+              <TextInput
+                label="Precio ($)"
+                required
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                value={form.price}
+                onChange={e => setForm({ ...form, price: e.target.value })}
+                className="text-lg font-display font-semibold"
+              />
+              <TextInput
                 label="Peso (gramos)"
                 hint={form.weight ? `Se muestra como ${formatWeight(parseInt(form.weight) || 0)} en la tienda.` : 'Opcional. Ej: 500, 1000, 2000.'}
-              >
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={form.weight}
-                  onChange={e => setForm({ ...form, weight: e.target.value })}
-                  placeholder="500"
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="Stock" hint={parseInt(form.stock) === 0 ? 'Se mostrará como "Sin stock" en la tienda.' : undefined}>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.stock}
-                  onChange={e => setForm({ ...form, stock: e.target.value })}
-                  className={inputCls}
-                />
-              </Field>
+                type="number"
+                inputMode="numeric"
+                min="1"
+                step="1"
+                value={form.weight}
+                onChange={e => setForm({ ...form, weight: e.target.value })}
+                placeholder="500"
+              />
+              <TextInput
+                label="Stock"
+                hint={parseInt(form.stock) === 0 ? 'Se mostrará como "Sin stock" en la tienda.' : undefined}
+                type="number"
+                inputMode="numeric"
+                min="0"
+                value={form.stock}
+                onChange={e => setForm({ ...form, stock: e.target.value })}
+              />
             </div>
           </SectionCard>
         )}

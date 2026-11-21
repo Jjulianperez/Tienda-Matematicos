@@ -557,3 +557,71 @@ body {
   .num-cell--arrive,
   .num-cell--ghost { animation: none; }
 }
+
+/* ===== Formularios en el celular ===== */
+
+/* Un recuadro (SectionCard con `flat`) dentro de un modal, en el celular: sin
+   marco ni relleno, para que los campos usen todo el ancho. Se define acá y no
+   con utilidades de Tailwind porque .card-dark está fuera de las capas y les
+   gana. En pantallas anchas no cambia nada. */
+@media (max-width: 639.98px) {
+  .card-flat-sm,
+  .card-flat-sm:hover {
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    padding: 0;
+  }
+}
+
+/* Barra que se desplaza en horizontal (las pestañas): en cada borde que tiene
+   más contenido más allá, se desvanece, para que se note que se puede deslizar.
+   La máscara es una capa opaca menos una banda con degradado en cada punta; el
+   tamaño de cada banda crece de 0 a --fade-size con el propio scroll de la barra
+   (animación por scroll). Si el contenido entra entero, no hay animación y no
+   se ve ningún desvanecido. */
+@property --fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.scroll-fade-x {
+  --fade-size: 2.5rem;
+  /* Lo que se enfoca o se ajusta al soltar nunca queda justo debajo del desvanecido. */
+  scroll-padding-inline: var(--fade-size);
+  mask:
+    linear-gradient(black, black) no-clip subtract,
+    linear-gradient(to right, black, transparent) 0 0 / var(--fade-start) 100% no-repeat no-clip,
+    linear-gradient(to right, transparent, black) 100% 0 / var(--fade-end) 100% no-repeat no-clip;
+  animation: reveal-fade-start linear both, hide-fade-end linear both;
+  /* Explícito: en Chromium el atajo `animation` deja la duración en 0 s y las
+     bandas saltaban de golpe en vez de crecer con el scroll. */
+  animation-duration: auto;
+  animation-timeline: scroll(self inline);
+  animation-range: 0 var(--fade-size), calc(100% - var(--fade-size)) 100%;
+}
+@keyframes reveal-fade-start {
+  to { --fade-start: var(--fade-size); }
+}
+@keyframes hide-fade-end {
+  from { --fade-end: var(--fade-size); }
+}
+
+/* Navegadores sin animaciones por scroll: un script marca de qué lado hay más
+   contenido (clases more-start y more-end) y acá se muestra el desvanecido. */
+@supports not (animation-timeline: scroll()) {
+  .scroll-fade-x {
+    animation: none;
+    transition: --fade-start 0.2s, --fade-end 0.2s;
+  }
+  .scroll-fade-x.more-start { --fade-start: var(--fade-size); }
+  .scroll-fade-x.more-end { --fade-end: var(--fade-size); }
+}

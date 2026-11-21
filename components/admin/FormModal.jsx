@@ -63,26 +63,28 @@ export default function FormModal({ open, onClose, title, subtitle, children, fo
               exit={{ opacity: 0, scale: 0.96, y: 16 }}
               transition={{ type: 'spring', stiffness: 300, damping: 26 }}
             >
-            <header className="flex items-start justify-between gap-4 px-6 sm:px-8 py-5 border-b border-white/10 shrink-0">
+            <header className="flex items-start justify-between gap-4 px-6 sm:px-8 py-4 sm:py-5 border-b border-white/10 shrink-0">
               <div className="min-w-0">
                 <h2 className="font-display font-semibold text-xl text-white">{title}</h2>
                 {subtitle && (
-                  <p className="text-sm text-white/40 mt-1">{subtitle}</p>
+                  <p className="text-sm text-white/50 mt-1">{subtitle}</p>
                 )}
               </div>
+              {/* 44 x 44 px: el mínimo para tocarlo con el dedo sin errar. */}
               <button
+                type="button"
                 onClick={onClose}
-                className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors shrink-0"
+                className="-mr-2 -mt-1.5 inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
                 aria-label="Cerrar"
               >
-                <HiOutlineXMark size={22} />
+                <HiOutlineXMark size={22} aria-hidden="true" />
               </button>
             </header>
 
             <div data-lenis-prevent className="flex-1 min-h-0 overflow-y-auto overscroll-contain">{children}</div>
 
             {footer && (
-              <footer className="shrink-0 px-6 sm:px-8 py-5 border-t border-white/10 bg-carbon/95 backdrop-blur-md">
+              <footer className="shrink-0 px-6 sm:px-8 py-4 sm:py-5 border-t border-white/10 bg-carbon/95 backdrop-blur-md">
                 {footer}
               </footer>
             )}
