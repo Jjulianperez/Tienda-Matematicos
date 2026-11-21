@@ -1,7 +1,12 @@
 'use client'
 
+import { useState } from 'react'
+
+// [color-scheme:dark] hace que el navegador dibuje en oscuro lo que no controla
+// el CSS: la lista desplegable de los select (sin esto salía blanca con texto
+// blanco) y el calendario de los campos de fecha.
 export const inputCls =
-  "w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+  "w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 [color-scheme:dark] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
 
 export const labelCls =
   "block text-xs font-semibold uppercase tracking-widest text-white/40 mb-2"
@@ -66,6 +71,133 @@ export function Select({ label, hint, required, children, className, style, ...p
       >
         {children}
       </select>
+    </Field>
+  )
+}
+
+const pad2 = n => String(n).padStart(2, '0')
+const HOURS = Array.from({ length: 24 }, (_, i) => pad2(i))
+const MINUTES = Array.from({ length: 60 }, (_, i) => pad2(i))
+
+// Fecha y hora en formato 24 h. <input type="datetime-local"> muestra 12 h con
+// a. m./p. m. según el idioma del navegador y no se puede cambiar desde la
+// página, así que la fecha va en su campo y la hora en dos listas (00–23 y
+// 00–59). El valor sigue siendo "AAAA-MM-DDTHH:mm", igual que antes.
+export function DateTimeField({ label, hint, required, value, onChange, disabled }) {
+  const [date = '', time = ''] = (value || '').split('T')
+  const [hour = '', minute = ''] = time.split(':')
+
+  const emit = (nextDate, nextHour, nextMinute) => {
+    if (!nextDate && !nextHour && !nextMinute) return onChange('')
+    // Si falta la hora o los minutos se completa con 00 para no perder lo que ya se eligió.
+    onChange(`${nextDate}T${nextHour || '00'}:${nextMinute || '00'}`)
+  }
+
+  return (
+    <Field label={label} hint={hint} required={required}>
+      <div className="grid grid-cols-[1fr_auto_auto] gap-2">
+        <input
+          type="date"
+          required={required}
+          disabled={disabled}
+          value={date}
+          onChange={e => emit(e.target.value, hour, minute)}
+          className={inputCls}
+          aria-label={`${label}: fecha`}
+        />
+        <select
+          disabled={disabled}
+          value={hour}
+          onChange={e => emit(date, e.target.value, minute)}
+          className={`${inputCls} !w-auto cursor-pointer`}
+          aria-label={`${label}: hora`}
+        >
+          {!hour && <option value="">hh</option>}
+          {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
+        </select>
+        <select
+          disabled={disabled}
+          value={minute}
+          onChange={e => emit(date, hour, e.target.value)}
+          className={`${inputCls} !w-auto cursor-pointer`}
+          aria-label={`${label}: minutos`}
+        >
+          {!minute && <option value="">mm</option>}
+          {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+      </div>
+      <span className="block text-xs text-white/30 mt-2">Hora de 24 h: 13:14 es la 1:14 de la tarde.</span>
+    </Field>
+  )
+}
+
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024
+
+// Elegir una imagen del dispositivo (galería, archivos o cámara en el celular):
+// se sube a Cloudinary por /api/upload y el campo guarda la dirección que
+// devuelve. onChange recibe la URL (o '' al quitarla).
+export function ImageUploadField({ label, hint, value, onChange, onError, disabled }) {
+  const [uploading, setUploading] = useState(false)
+
+  const handleFile = async event => {
+    const input = event.target
+    const file = input.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      input.value = ''
+      return onError?.('El archivo tiene que ser una imagen')
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      input.value = ''
+      return onError?.('La imagen pesa más de 4 MB. Elegí una más liviana')
+    }
+
+    setUploading(true)
+    try {
+      const body = new FormData()
+      body.append('image', file)
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.url) throw new Error(data.error || 'No se pudo subir la imagen')
+      onChange(data.url)
+    } catch (error) {
+      onError?.(error.message)
+    } finally {
+      setUploading(false)
+      input.value = ''
+    }
+  }
+
+  return (
+    <Field label={label} hint={hint}>
+      <div className="flex flex-wrap items-center gap-4">
+        {value ? (
+          // eslint-disable-next-line @next/next/no-img-element -- vista previa de una imagen recién subida a Cloudinary.
+          <img src={value} alt="Vista previa" className="w-24 h-24 rounded-xl object-cover border border-white/10" />
+        ) : (
+          <div className="w-24 h-24 rounded-xl border border-dashed border-white/15 flex items-center justify-center text-[11px] text-white/30 text-center px-2">
+            Sin imagen
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <label
+            className={`btn-outline cursor-pointer ${disabled || uploading ? 'opacity-50 pointer-events-none' : ''}`}
+          >
+            {uploading ? 'Subiendo...' : value ? 'Cambiar imagen' : 'Elegir imagen'}
+            <input type="file" accept="image/*" className="sr-only" disabled={disabled || uploading} onChange={handleFile} />
+          </label>
+          {value && !disabled && (
+            <button type="button" onClick={() => onChange('')} className="btn-ghost">
+              Quitar
+            </button>
+          )}
+        </div>
+      </div>
     </Field>
   )
 }

@@ -8,6 +8,7 @@ import {
   notFound,
   readJson,
   uuidParam,
+  advanceGiveaways,
 } from '@/lib/giveaways/server'
 
 // Detalle completo para el panel: sorteo, requisitos, conteos, ganadores,
@@ -19,6 +20,8 @@ export async function GET(request, { params }) {
 
   const id = uuidParam((await params).id)
   if (!id) return notFound('No encontramos ese sorteo')
+
+  await advanceGiveaways()
 
   const { data: giveaway, error } = await supabaseAdmin
     .from('giveaways')

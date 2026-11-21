@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import FormModal from '@/components/admin/FormModal'
-import { TextInput, TextArea, Select, FormActions } from '@/components/admin/fields'
+import { TextInput, TextArea, Select, FormActions, DateTimeField, ImageUploadField } from '@/components/admin/fields'
 import {
   adminFetch,
   errorMessage,
@@ -110,17 +110,18 @@ export default function GiveawayFormModal({ giveaway, onSaved, onCancel, onError
 
         <TextInput label="Premio" required value={form.prize_name} onChange={set('prize_name')} disabled={locked.prize_name} placeholder="Kit matero completo" />
         <TextArea label="Descripción del premio" value={form.prize_description} onChange={set('prize_description')} rows={2} />
-        <TextInput
-          label="Imagen del premio (dirección https)"
+        <ImageUploadField
+          label="Imagen del premio"
+          hint="Elegila de tu galería o archivos (JPG, PNG o WebP, hasta 4 MB)."
           value={form.prize_image_url}
-          onChange={set('prize_image_url')}
-          placeholder="https://res.cloudinary.com/..."
+          onChange={url => setForm(prev => ({ ...prev, prize_image_url: url }))}
+          onError={onError}
         />
         <TextArea label="Descripción del sorteo" value={form.description} onChange={set('description')} rows={3} />
 
         <div className="grid sm:grid-cols-2 gap-5">
-          <TextInput label="Inicio" type="datetime-local" required value={form.starts_at} onChange={set('starts_at')} disabled={locked.starts_at} />
-          <TextInput label="Cierre" type="datetime-local" required value={form.ends_at} onChange={set('ends_at')} disabled={locked.ends_at} />
+          <DateTimeField label="Inicio" required value={form.starts_at} onChange={value => setForm(prev => ({ ...prev, starts_at: value }))} disabled={locked.starts_at} />
+          <DateTimeField label="Cierre" required value={form.ends_at} onChange={value => setForm(prev => ({ ...prev, ends_at: value }))} disabled={locked.ends_at} />
         </div>
 
         <div className="grid sm:grid-cols-3 gap-5">

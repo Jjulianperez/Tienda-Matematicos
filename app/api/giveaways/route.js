@@ -6,6 +6,7 @@ import {
   dbErrorResponse,
   badRequest,
   readJson,
+  advanceGiveaways,
 } from '@/lib/giveaways/server'
 
 // Lista de sorteos con sus conteos (participantes, tickets, evidencias pendientes).
@@ -13,6 +14,7 @@ export async function GET(request) {
   const admin = await requireGiveawayAdmin(request)
   if (admin instanceof NextResponse) return admin
 
+  await advanceGiveaways()
   const { data, error } = await supabaseAdmin.rpc('giveaway_admin_list')
   if (error) return dbErrorResponse(error)
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { dbErrorResponse, PUBLIC_STATUSES } from '@/lib/giveaways/server'
+import { dbErrorResponse, advanceGiveaways, PUBLIC_STATUSES } from '@/lib/giveaways/server'
 
 // Lista pública de sorteos. Sin borradores ni cancelados, y sin datos de nadie:
 // solo lo necesario para armar las tarjetas.
@@ -10,6 +10,7 @@ const LIST_COLUMNS = [
 ].join(', ')
 
 export async function GET() {
+  await advanceGiveaways()
   const { data, error } = await supabaseAdmin
     .from('giveaways')
     .select(LIST_COLUMNS)
