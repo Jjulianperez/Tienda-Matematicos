@@ -7,9 +7,23 @@ import { HiOutlineCheckCircle, HiOutlineClock, HiOutlineXCircle, HiOutlineTicket
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import GeometricDecor from '@/components/ui/GeometricDecor'
+import GiveawayStage from '@/components/giveaways/stage/GiveawayStage'
 import { useToast, ToastStack } from '@/components/Modal'
 import { formatDateTime } from '@/lib/format'
-import { publicFetch, errorMessage, KIND_LABELS, SLOT_LABELS, STATUS_META } from '@/lib/giveaways/ui'
+import { launchConfetti } from '@/lib/giveaways/confetti'
+import { playWinner } from '@/lib/giveaways/sound'
+import { useGiveawayStats } from '@/lib/giveaways/useGiveawayStats'
+import {
+  publicFetch,
+  errorMessage,
+  toMine,
+  wasJustJoined,
+  readWinCelebrated,
+  markWinCelebrated,
+  KIND_LABELS,
+  SLOT_LABELS,
+  STATUS_META,
+} from '@/lib/giveaways/ui'
 
 const MAX_BYTES = 4 * 1024 * 1024
 
@@ -93,6 +107,32 @@ function RequirementItem({ requirement, canAct, busy, onUpload, onAnswer }) {
   )
 }
 
+// La escena del sorteo con la participación de esta persona. No se vuelve a
+// crear al recargar el comprobante: así, cuando se aprueba un requisito, se ve
+// cómo su esfera (o su lugar) pasa de "en revisión" a confirmada.
+function ParticipationStage({ slug, data, celebrate, onStatusChange }) {
+  const giveaway = data.giveaway
+  const stats = useGiveawayStats(slug, data.stats, {
+    status: giveaway.status,
+    enabled: giveaway.status !== 'completed',
+    onStatusChange,
+  })
+  return (
+    <GiveawayStage
+      format={giveaway.format}
+      status={giveaway.status}
+      participants={stats.participants}
+      tickets={stats.tickets}
+      ranges={stats.ranges}
+      mine={toMine(data)}
+      celebrate={celebrate}
+      startsAt={giveaway.starts_at}
+      endsAt={giveaway.ends_at}
+      size="md"
+    />
+  )
+}
+
 export default function ParticipacionPage() {
   const { slug, token } = useParams()
   const [data, setData] = useState(null)
@@ -100,6 +140,8 @@ export default function ParticipacionPage() {
   const [missing, setMissing] = useState(false)
   const [busyId, setBusyId] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  // true si la persona recién se inscribió: su esfera entra con animación.
+  const [celebrate] = useState(() => wasJustJoined(slug))
   const { toasts, show, dismiss } = useToast()
 
   const toastRef = useRef(show)
@@ -117,6 +159,14 @@ export default function ParticipacionPage() {
   }, [slug, token, reloadKey])
 
   const reload = () => setReloadKey(k => k + 1)
+
+  // Si esta persona ganó, se festeja una vez (después, cada visita sería repetir).
+  useEffect(() => {
+    if (data?.winner?.role !== 'winner' || readWinCelebrated(slug)) return
+    markWinCelebrated(slug)
+    launchConfetti()
+    playWinner()
+  }, [data, slug])
 
   const upload = async (requirement, file) => {
     if (file.size > MAX_BYTES) return toastRef.current('La captura supera los 4 MB', 'error')
@@ -175,6 +225,17 @@ export default function ParticipacionPage() {
                   Guardá esta página: es tu comprobante y la única forma de volver a ver tu participación.
                 </p>
               </header>
+
+              {celebrate && (
+                <p className="card-dark p-5 text-sm leading-relaxed text-white/70">
+                  <span className="font-semibold text-white">¡Listo, {data.participant.full_name.trim().split(/s+/)[0]}!</span>{' '}
+                  {data.entries.length === 0
+                    ? 'Reservamos tu lugar. Cumplí los requisitos de abajo para que cuente en el sorteo.'
+                    : 'Ya estás participando.'}
+                </p>
+              )}
+
+              <ParticipationStage slug={slug} data={data} celebrate={celebrate} onStatusChange={reload} />
 
               {data.winner && (
                 <div className="card-dark p-6 border border-primary/40">

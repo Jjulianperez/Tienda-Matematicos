@@ -13,6 +13,7 @@ import RequirementsPanel from '@/components/admin/giveaways/RequirementsPanel'
 import EvidencePanel from '@/components/admin/giveaways/EvidencePanel'
 import ParticipantsPanel from '@/components/admin/giveaways/ParticipantsPanel'
 import ResultPanel from '@/components/admin/giveaways/ResultPanel'
+import StagePanel from '@/components/admin/giveaways/StagePanel'
 import { formatDateTime } from '@/lib/format'
 import { adminFetch, errorMessage } from '@/lib/giveaways/ui'
 
@@ -121,6 +122,16 @@ export default function AdminSorteoDetalle() {
   const showResult = ['ready', 'drawing', 'completed'].includes(status) || (data?.draws?.length ?? 0) > 0
   const pending = data?.overview?.pending_evidence ?? 0
 
+  // Mientras el sorteo está abierto, el panel se actualiza solo cada 15 s para
+  // que la escena refleje a quienes se van sumando.
+  useEffect(() => {
+    if (!['scheduled', 'active', 'closing'].includes(status)) return
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') setReloadKey(k => k + 1)
+    }, 15000)
+    return () => clearInterval(timer)
+  }, [status])
+
   const tabs = [
     { id: 'resumen', label: 'Resumen' },
     { id: 'requisitos', label: 'Requisitos' },
@@ -132,7 +143,7 @@ export default function AdminSorteoDetalle() {
 
   return (
     <AdminLayout title={giveaway?.title || 'Sorteo'}>
-      <div className="p-4 sm:p-8 lg:p-10 max-w-5xl">
+      <div className="p-4 sm:p-8 lg:p-10 max-w-6xl">
         <Link href="/admin/sorteos" className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white mb-6">
           <HiOutlineChevronLeft size={16} />
           Todos los sorteos
@@ -147,14 +158,17 @@ export default function AdminSorteoDetalle() {
             <Tabs tabs={tabs} active={tab} onChange={setTab} className="mb-6" />
 
             {tab === 'resumen' && (
-              <ActionsPanel
-                data={data}
-                isOwner={isOwner}
-                onEdit={() => setEditing(true)}
-                onChanged={handleChanged}
-                onDrawn={handleDrawn}
-                toast={toast}
-              />
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+                <ActionsPanel
+                  data={data}
+                  isOwner={isOwner}
+                  onEdit={() => setEditing(true)}
+                  onChanged={handleChanged}
+                  onDrawn={handleDrawn}
+                  toast={toast}
+                />
+                <StagePanel data={data} />
+              </div>
             )}
             {tab === 'requisitos' && (
               <RequirementsPanel
@@ -166,7 +180,10 @@ export default function AdminSorteoDetalle() {
               />
             )}
             {tab === 'evidencias' && (
-              <EvidencePanel giveaway={giveaway} canReview={['active', 'closing'].includes(status)} onChanged={load} toast={toast} />
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+                <EvidencePanel giveaway={giveaway} canReview={['active', 'closing'].includes(status)} onChanged={load} toast={toast} />
+                <StagePanel data={data} className="lg:sticky lg:top-6" />
+              </div>
             )}
             {tab === 'participantes' && <ParticipantsPanel giveaway={giveaway} toast={toast} />}
             {tab === 'resultado' && (

@@ -1,12 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { HiOutlineSpeakerWave, HiOutlineSpeakerXMark } from 'react-icons/hi2'
 import FormModal from '@/components/admin/FormModal'
 import Wheel from '@/components/giveaways/draw/Wheel'
 import Urn from '@/components/giveaways/draw/Urn'
 import NumberRoll from '@/components/giveaways/draw/NumberRoll'
 import { spinDurationMs } from '@/lib/giveaways/stage'
+import { launchConfetti } from '@/lib/giveaways/confetti'
+import {
+  isSoundMuted,
+  setSoundMuted,
+  subscribeSound,
+  unlockAudio,
+  playWinner,
+} from '@/lib/giveaways/sound'
 import { usePrefersReducedMotion } from '@/lib/giveaways/useReducedMotion'
 
 // Margen después de que termina el giro, antes de mostrar al ganador.
@@ -75,11 +84,20 @@ export default function DrawStage({ format, winners, totalTickets, title, onClos
   const finished = reducedMotion || skipped || showAll || !current
   const revealed = phase === 'revealed'
 
-  // Cuando termina el giro, se muestra al ganador. El estado se cambia dentro
-  // del timeout (no de forma sincrónica en el efecto).
+  const muted = useSyncExternalStore(subscribeSound, isSoundMuted, () => false)
+
+  // Mientras gira, cada formato hace su propio sonido (redoble de la urna, clics
+  // de la ruleta, tambores de los números). Cuando termina el giro se muestra al
+  // ganador con fanfarria y confeti. El estado se cambia dentro del timeout (no
+  // de forma sincrónica en el efecto). Al saltar o cerrar, el efecto se limpia.
   useEffect(() => {
     if (finished || phase !== 'spinning') return
-    const timer = setTimeout(() => setPhase('revealed'), spinMs + SETTLE_MS)
+    unlockAudio()
+    const timer = setTimeout(() => {
+      setPhase('revealed')
+      playWinner()
+      launchConfetti({ intensity: step === 0 ? 1 : 0.8 })
+    }, spinMs + SETTLE_MS)
     return () => clearTimeout(timer)
   }, [finished, phase, step, spinMs])
 
@@ -107,28 +125,51 @@ export default function DrawStage({ format, winners, totalTickets, title, onClos
 
   return (
     <FormModal open onClose={onClose} title="Sorteo en vivo" subtitle={title} maxWidth="max-w-2xl" footer={footer}>
-      <div className="px-6 py-8 sm:px-8">
+      <div className="relative px-6 py-4 sm:px-8 sm:py-8">
+        {/* Foco de luz detrás de la escena */}
+        <div
+          className="pointer-events-none absolute inset-x-0 top-6 h-[26rem]"
+          style={{ background: 'radial-gradient(ellipse 55% 50% at 50% 45%, rgba(148,168,106,0.2), rgba(148,168,106,0) 70%)' }}
+          aria-hidden="true"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            unlockAudio()
+            setSoundMuted(!muted)
+          }}
+          className="absolute right-4 top-3 rounded-lg p-2 text-white/40 transition-colors hover:bg-white/5 hover:text-white"
+          aria-label={muted ? 'Activar el sonido' : 'Silenciar el sonido'}
+          aria-pressed={muted}
+        >
+          {muted ? <HiOutlineSpeakerXMark size={20} /> : <HiOutlineSpeakerWave size={20} />}
+        </button>
         {finished ? (
           <ResultList winners={main} alternates={alternates} />
         ) : (
           <>
-            <p className="mb-6 text-center text-xs uppercase tracking-widest text-white/40">
+            <p className="mb-4 text-center text-xs uppercase tracking-widest text-white/40 sm:mb-6">
               {main.length > 1 ? `Ganador ${step + 1} de ${main.length}` : 'Ganador'}
             </p>
 
             {/* key: cada ganador empieza su animación desde cero */}
             <div key={step}>
               {format === 'urna' ? (
-                <Urn ticketNumber={current.ticket_number} running={!revealed} />
+                <Urn
+                  ticketNumber={current.ticket_number}
+                  totalTickets={totalTickets}
+                  spinMs={spinMs}
+                  drawn={main.slice(0, step).map(w => w.ticket_number)}
+                />
               ) : format === 'numeros' ? (
-                <NumberRoll ticketNumber={current.ticket_number} totalTickets={totalTickets} spinMs={spinMs} />
+                <NumberRoll ticketNumber={current.ticket_number} totalTickets={totalTickets} spinMs={spinMs} revealed={revealed} />
               ) : (
-                <Wheel ticketNumber={current.ticket_number} totalTickets={totalTickets} spinMs={spinMs} revealed={revealed} />
+                <Wheel ticketNumber={current.ticket_number} totalTickets={totalTickets} spinMs={spinMs} />
               )}
             </div>
 
             {/* Lo leen los lectores de pantalla; la animación en sí está oculta para ellos. */}
-            <div className="mt-8 min-h-[5.5rem] text-center" role="status" aria-live="polite">
+            <div className="mt-4 min-h-[4.5rem] text-center sm:mt-8 sm:min-h-[5.5rem]" role="status" aria-live="polite">
               <AnimatePresence>
                 {revealed ? (
                   <motion.div

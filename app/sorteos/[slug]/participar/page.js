@@ -7,7 +7,7 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import GeometricDecor from '@/components/ui/GeometricDecor'
 import { formatDateTime } from '@/lib/format'
-import { publicFetch, storeToken, errorMessage } from '@/lib/giveaways/ui'
+import { publicFetch, storeToken, markJoined, errorMessage } from '@/lib/giveaways/ui'
 
 const inputCls = 'input-dark'
 const labelCls = 'block text-xs font-semibold uppercase tracking-widest text-white/40 mb-2'
@@ -81,6 +81,7 @@ export default function ParticiparPage() {
     }
 
     storeToken(slug, result.data.token)
+    markJoined(slug)
     router.push(`/sorteos/${slug}/participacion/${result.data.token}`)
   }
 

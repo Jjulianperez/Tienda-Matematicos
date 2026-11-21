@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { HiOutlineCheckCircle, HiOutlineXCircle } from 'react-icons/hi2'
 import FormModal from '@/components/admin/FormModal'
-import { TextInput, TextArea, FormActions, SectionCard } from '@/components/admin/fields'
+import { TextInput, TextArea, FormActions, SectionCard, DateTimeField } from '@/components/admin/fields'
+import { unlockAudio } from '@/lib/giveaways/sound'
 import { Confirm } from '@/components/Modal'
 import { formatDateTime } from '@/lib/format'
 import {
@@ -45,7 +46,7 @@ function ReasonForm({ title, subtitle, submitText, withDate, saving, onSubmit, o
         className="space-y-5 px-6 sm:px-8 py-6"
       >
         {withDate && (
-          <TextInput label="Nueva fecha de cierre" type="datetime-local" required value={endsAt} onChange={e => setEndsAt(e.target.value)} />
+          <DateTimeField label="Nueva fecha de cierre" required value={endsAt} onChange={setEndsAt} />
         )}
         <TextArea
           label="Motivo"
@@ -74,7 +75,7 @@ function DrawForm({ giveaway, tickets, saving, onSubmit, onCancel }) {
       footer={
         <div className="flex flex-col sm:flex-row gap-3 sm:justify-end">
           <button type="button" onClick={onCancel} className="btn-ghost">Cancelar</button>
-          <button type="button" disabled={!matches || saving} onClick={() => onSubmit(typed.trim())} className="btn-primary">
+          <button type="button" disabled={!matches || saving} onClick={() => { unlockAudio(); onSubmit(typed.trim()) }} className="btn-primary">
             {saving ? 'Sorteando...' : 'Ejecutar sorteo'}
           </button>
         </div>

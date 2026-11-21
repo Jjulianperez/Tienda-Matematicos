@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { HiOutlineGift, HiOutlineClock } from 'react-icons/hi2'
+import { HiOutlineGift, HiOutlineClock, HiOutlineUserGroup } from 'react-icons/hi2'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import GeometricDecor from '@/components/ui/GeometricDecor'
 import { formatDateTime } from '@/lib/format'
-import { publicFetch, STATUS_META } from '@/lib/giveaways/ui'
+import { publicFetch, STATUS_META, FORMAT_LABELS } from '@/lib/giveaways/ui'
 
 // Orden y títulos de cada grupo en la página.
 const GROUPS = [
@@ -32,7 +32,16 @@ function GiveawayCard({ giveaway }) {
         </div>
         <p className="text-primary-light text-sm mt-2">{giveaway.prize_name}</p>
         {giveaway.description && <p className="text-sm text-white/50 mt-3 line-clamp-2 leading-relaxed">{giveaway.description}</p>}
-        <p className="flex items-center gap-1.5 text-xs text-white/40 mt-4">
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/50 mt-4">
+          {giveaway.participants_count !== null && giveaway.participants_count !== undefined && (
+            <span className="inline-flex items-center gap-1.5">
+              <HiOutlineUserGroup size={14} />
+              {giveaway.participants_count} {giveaway.participants_count === 1 ? 'persona participando' : 'personas participando'}
+            </span>
+          )}
+          <span>{FORMAT_LABELS[giveaway.format] || 'Sorteo'}</span>
+        </p>
+        <p className="flex items-center gap-1.5 text-xs text-white/40 mt-2">
           <HiOutlineClock size={14} />
           {giveaway.status === 'scheduled'
             ? `Empieza ${formatDateTime(giveaway.starts_at)}`

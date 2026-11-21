@@ -5,6 +5,7 @@ import { SectionCard } from '@/components/admin/fields'
 import VerifyDraw from '@/components/giveaways/VerifyDraw'
 import DrawStage from '@/components/giveaways/draw/DrawStage'
 import { formatDateTime } from '@/lib/format'
+import { unlockAudio } from '@/lib/giveaways/sound'
 
 function WinnerList({ title, items }) {
   if (items.length === 0) return null
@@ -74,7 +75,7 @@ export default function ResultPanel({ giveaway, winners, draws, autoPlay = false
             <WinnerList title="Ganadores" items={group('winner')} />
             <WinnerList title="Suplentes (en orden)" items={group('alternate')} />
             {giveaway.status === 'completed' && (
-              <button type="button" onClick={() => setPlaying(true)} className="btn-outline">
+              <button type="button" onClick={() => { unlockAudio(); setPlaying(true) }} className="btn-outline">
                 Reproducir el sorteo
               </button>
             )}
