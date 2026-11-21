@@ -470,3 +470,158 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ===== Sorteos: tablero de números ===== */
+.num-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(245, 242, 234, 0.78);
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+@media (min-width: 640px) {
+  .num-cell { font-size: 0.78rem; }
+}
+/* Número asignado: se tacha con una línea que se dibuja de izquierda a derecha. */
+.num-cell--taken {
+  color: rgba(245, 242, 234, 0.34);
+  background: rgba(148, 168, 106, 0.08);
+  border-color: rgba(148, 168, 106, 0.2);
+}
+.num-cell--taken::after,
+.num-cell--mine::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 2px;
+  background: #94a86a;
+  transform-origin: left center;
+  transform: rotate(-14deg) scaleX(1);
+  animation: num-strike 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+/* El número de la persona: dorado, también tachado. */
+.num-cell--mine {
+  color: #1a1d16;
+  font-weight: 800;
+  background: #f4c95d;
+  border-color: #f4c95d;
+  box-shadow: 0 0 14px rgba(244, 201, 93, 0.55);
+  z-index: 1;
+}
+.num-cell--mine::after { background: rgba(26, 29, 22, 0.85); }
+.num-cell--arrive { animation: num-arrive 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+/* Lugar reservado mientras la participación está en revisión. */
+.num-cell--ghost {
+  color: #f4c95d;
+  border: 1.5px dashed rgba(244, 201, 93, 0.9);
+  background: rgba(244, 201, 93, 0.1);
+  animation: num-pulse 1.6s ease-in-out infinite;
+}
+/* Revelación: la luz que salta de número en número mientras giran los tambores. */
+.num-cell--scan {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.55);
+  color: #fff;
+  transform: scale(1.14);
+  z-index: 1;
+}
+@keyframes num-strike {
+  from { transform: rotate(-14deg) scaleX(0); }
+  to { transform: rotate(-14deg) scaleX(1); }
+}
+@keyframes num-arrive {
+  0% { transform: scale(0.5); box-shadow: 0 0 0 0 rgba(244, 201, 93, 0.9); }
+  55% { transform: scale(1.4); }
+  100% { transform: scale(1); box-shadow: 0 0 0 14px rgba(244, 201, 93, 0); }
+}
+@keyframes num-pulse {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .num-cell--taken::after,
+  .num-cell--mine::after,
+  .num-cell--arrive,
+  .num-cell--ghost { animation: none; }
+}
+
+/* ===== Formularios en el celular ===== */
+
+/* Un recuadro (SectionCard con `flat`) dentro de un modal, en el celular: sin
+   marco ni relleno, para que los campos usen todo el ancho. Se define acá y no
+   con utilidades de Tailwind porque .card-dark está fuera de las capas y les
+   gana. En pantallas anchas no cambia nada. */
+@media (max-width: 639.98px) {
+  .card-flat-sm,
+  .card-flat-sm:hover {
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    padding: 0;
+  }
+}
+
+/* Barra que se desplaza en horizontal (las pestañas): en cada borde que tiene
+   más contenido más allá, se desvanece, para que se note que se puede deslizar.
+   La máscara es una capa opaca menos una banda con degradado en cada punta; el
+   tamaño de cada banda crece de 0 a --fade-size con el propio scroll de la barra
+   (animación por scroll). Si el contenido entra entero, no hay animación y no
+   se ve ningún desvanecido. */
+@property --fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.scroll-fade-x {
+  --fade-size: 2.5rem;
+  /* Lo que se enfoca o se ajusta al soltar nunca queda justo debajo del desvanecido. */
+  scroll-padding-inline: var(--fade-size);
+  mask:
+    linear-gradient(black, black) no-clip subtract,
+    linear-gradient(to right, black, transparent) 0 0 / var(--fade-start) 100% no-repeat no-clip,
+    linear-gradient(to right, transparent, black) 100% 0 / var(--fade-end) 100% no-repeat no-clip;
+  animation: reveal-fade-start linear both, hide-fade-end linear both;
+  /* Explícito: en Chromium el atajo `animation` deja la duración en 0 s y las
+     bandas saltaban de golpe en vez de crecer con el scroll. */
+  animation-duration: auto;
+  animation-timeline: scroll(self inline);
+  animation-range: 0 var(--fade-size), calc(100% - var(--fade-size)) 100%;
+}
+@keyframes reveal-fade-start {
+  to { --fade-start: var(--fade-size); }
+}
+@keyframes hide-fade-end {
+  from { --fade-end: var(--fade-size); }
+}
+
+/* Navegadores sin animaciones por scroll: un script marca de qué lado hay más
+   contenido (clases more-start y more-end) y acá se muestra el desvanecido. */
+@supports not (animation-timeline: scroll()) {
+  .scroll-fade-x {
+    animation: none;
+    transition: --fade-start 0.2s, --fade-end 0.2s;
+  }
+  .scroll-fade-x.more-start { --fade-start: var(--fade-size); }
+  .scroll-fade-x.more-end { --fade-end: var(--fade-size); }
+}

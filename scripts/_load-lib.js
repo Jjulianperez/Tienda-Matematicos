@@ -31,9 +31,14 @@ function collectSource(fileName, seen) {
 
   const source = fs.readFileSync(path.join(LIB_DIR, fileName), 'utf-8')
 
+  // Los imports relativos se resuelven desde la carpeta del archivo que los
+  // pide, así que también funcionan dentro de subcarpetas (lib/giveaways/).
+  const fromDir = path.posix.dirname(fileName)
   let dependencies = ''
   for (const match of source.matchAll(IMPORT_RE)) {
-    const dep = match[1].replace(/^\.\//, '').replace(/\.js$/, '') + '.js'
+    const dep = path.posix.normalize(
+      path.posix.join(fromDir, match[1].replace(/\.js$/, '') + '.js')
+    )
     dependencies += collectSource(dep, seen) + '\n'
   }
 

@@ -11,6 +11,7 @@ import {
   HiOutlineTag,
   HiOutlineUsers,
   HiOutlineBanknotes,
+  HiOutlineGift,
   HiOutlineCog6Tooth,
   HiOutlineHome,
   HiOutlineArrowRightOnRectangle,
@@ -28,6 +29,7 @@ const NAV = [
   { label: 'Órdenes', href: '/admin/ordenes', icon: HiOutlineClipboardDocumentList },
   { label: 'Clientes', href: '/admin/clientes', icon: HiOutlineUsers },
   { label: 'Finanzas', href: '/admin/finanzas', icon: HiOutlineBanknotes },
+  { label: 'Sorteos', href: '/admin/sorteos', icon: HiOutlineGift },
   { label: 'Configuración', href: '/admin/configuracion', icon: HiOutlineCog6Tooth },
 ]
 
@@ -85,7 +87,8 @@ export default function AdminLayout({ title, children }) {
 
       <nav className="flex-1 p-4 space-y-1.5">
         {NAV.map(item => {
-          const active = pathname === item.href
+          // También activo en las pantallas internas (/admin/sorteos/<id>).
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
           return (
             <Link
               key={item.href}
