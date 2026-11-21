@@ -4,6 +4,7 @@ import { requirementStates } from '@/lib/giveaways/participation'
 import {
   notFound,
   findPublicGiveaway,
+  loadPublicStats,
   findParticipantByToken,
   readParticipationToken,
   withinRateLimit,
@@ -27,7 +28,7 @@ export async function GET(request, { params }) {
   const participant = await findParticipantByToken(giveaway.id, token)
   if (!participant) return notFound('No encontramos tu participación')
 
-  const [requirements, evidence, submissions, entries, winner] = await Promise.all([
+  const [requirements, evidence, submissions, entries, winner, stats] = await Promise.all([
     supabaseAdmin
       .from('giveaway_requirements')
       .select('id, position, slot, kind, title, instructions')
@@ -51,10 +52,13 @@ export async function GET(request, { params }) {
       .select('role, position')
       .eq('participant_id', participant.id)
       .maybeSingle(),
+    // Las cifras en vivo para dibujar la escena (son las mismas que ve cualquiera).
+    loadPublicStats(giveaway),
   ])
 
   return NextResponse.json({
     giveaway,
+    stats,
     participant: { full_name: participant.full_name, ig_handle: participant.ig_handle },
     requirements: requirementStates(requirements.data, evidence.data, submissions.data),
     entries: entries.data || [],

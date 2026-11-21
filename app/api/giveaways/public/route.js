@@ -20,5 +20,14 @@ export async function GET() {
 
   if (error) return dbErrorResponse(error)
 
-  return NextResponse.json(data || [])
+  // Cantidad de personas por sorteo. Si falta la migración 009 las tarjetas
+  // simplemente no muestran el número.
+  const { data: counts } = await supabaseAdmin.rpc('giveaway_public_counts')
+  const withCounts = (data || []).map(giveaway => ({
+    ...giveaway,
+    participants_count: counts?.[giveaway.id]?.participants ?? null,
+    tickets_count: counts?.[giveaway.id]?.tickets ?? null,
+  }))
+
+  return NextResponse.json(withCounts)
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { findPublicGiveaway, notFound, firstName } from '@/lib/giveaways/server'
+import { findPublicGiveaway, loadPublicStats, notFound, firstName } from '@/lib/giveaways/server'
 
 // Detalle público de un sorteo.
 //
@@ -17,14 +17,20 @@ export async function GET(request, { params }) {
   const giveaway = await findPublicGiveaway(slug)
   if (!giveaway) return notFound('No encontramos ese sorteo')
 
-  const { data: requirements } = await supabaseAdmin
-    .from('giveaway_requirements')
-    .select('id, position, slot, kind, title, instructions')
-    .eq('giveaway_id', giveaway.id)
-    .order('position')
+  const [{ data: requirements }, stats] = await Promise.all([
+    supabaseAdmin
+      .from('giveaway_requirements')
+      .select('id, position, slot, kind, title, instructions')
+      .eq('giveaway_id', giveaway.id)
+      .order('position'),
+    loadPublicStats(giveaway),
+  ])
 
   const response = {
     giveaway,
+    // Cifras en vivo (personas, oportunidades, números asignados). La página las
+    // refresca sola con /stats mientras el sorteo está abierto.
+    stats,
     requirements: requirements || [],
     verification: null,
     winners: [],

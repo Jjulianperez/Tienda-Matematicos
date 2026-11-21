@@ -9,6 +9,7 @@ import {
   readJson,
   uuidParam,
   advanceGiveaways,
+  loadPublicStats,
 } from '@/lib/giveaways/server'
 
 // Detalle completo para el panel: sorteo, requisitos, conteos, ganadores,
@@ -66,10 +67,14 @@ export async function GET(request, { params }) {
     winners = winners.map(w => ({ ...w, participant: byId.get(w.participant_id) || null }))
   }
 
+  // Las mismas cifras que ve el público, para dibujar la escena en el panel.
+  const stats = await loadPublicStats(giveaway)
+
   return NextResponse.json({
     giveaway,
     requirements: requirements.data || [],
     overview: overview.data || null,
+    stats,
     winners,
     draws: draw.data || [],
     audit: audit.data || [],

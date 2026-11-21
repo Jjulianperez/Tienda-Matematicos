@@ -24,6 +24,7 @@ const MIGRATIONS = [
   '006_giveaways.sql',
   '007_giveaways_rpc.sql',
   '008_giveaways_support.sql',
+  '009_giveaways_public_stats.sql',
 ]
 
 let failures = 0
@@ -85,7 +86,7 @@ async function main() {
   } catch (error) {
     secondPass = error.message
   }
-  check('las migraciones 006, 007 y 008 se pueden aplicar dos veces', secondPass, 'ok')
+  check('las migraciones 006 a 009 se pueden aplicar dos veces', secondPass, 'ok')
 
   // -------------------------------------------------------------------------
   // Auxiliares de datos
@@ -593,6 +594,61 @@ async function main() {
     await addRequirement(g.id, 1, 'declarative', 1)
     await q('DELETE FROM giveaways WHERE id = $1', [g.id])
     check('un borrador se borra junto con sus requisitos', (await one('SELECT COUNT(*)::int AS n FROM giveaway_requirements WHERE giveaway_id = $1', [g.id])).n, 0)
+  }
+
+  // -------------------------------------------------------------------------
+  // 14. Cifras públicas en vivo (migración 009)
+  // -------------------------------------------------------------------------
+  {
+    const g = await newGiveaway()
+    const rq1 = await addRequirement(g.id, 1, 'declarative', 1)
+    const rq2 = await addRequirement(g.id, 2, 'declarative', 2)
+    await schedule(g)
+    await tick(0)
+
+    const stats = async withRanges =>
+      (await one('SELECT giveaway_public_stats($1::uuid, $2::boolean) AS r', [g.id, withRanges])).r
+
+    const empty = await stats(true)
+    check('sin tickets las cifras son cero y sin rangos', [empty.participants, empty.tickets, empty.ranges], [0, 0, []])
+
+    // 5 personas con ticket: la 2 y la 4 también consiguen el segundo.
+    // Tickets: p1=1, p2=2 y 3, p3=4, p4=5 y 6, p5=7.
+    const ids = []
+    for (let i = 1; i <= 5; i++) {
+      const entered = await enter(g.id, 900 + i)
+      await submitAnswer(entered.participant_id, rq1)
+      if (i % 2 === 0) await submitAnswer(entered.participant_id, rq2)
+      ids.push(entered.participant_id)
+    }
+    // Una persona inscripta que todavía no cumplió nada: no cuenta como participante.
+    await enter(g.id, 906)
+
+    const full = await stats(true)
+    check('las cifras cuentan personas con ticket y oportunidades', [full.participants, full.tickets], [5, 7])
+    check('los tickets consecutivos forman un solo rango', full.ranges, [[1, 7]])
+    check('sin pedir rangos no se calculan', (await stats(false)).ranges, null)
+
+    // Se borra a la persona 3 (ticket 4): queda un hueco.
+    await q('DELETE FROM giveaway_participants WHERE id = $1', [ids[2]])
+    const gap = await stats(true)
+    check('si desaparece un ticket, los rangos muestran el hueco', [gap.participants, gap.tickets, gap.ranges], [4, 6, [[1, 3], [5, 7]]])
+
+    const draftOne = await newGiveaway()
+    const counts = (await one('SELECT giveaway_public_counts() AS r')).r
+    check('la lista pública trae las cifras de cada sorteo', [counts[g.id].participants, counts[g.id].tickets], [4, 6])
+    check('la lista pública no incluye borradores', draftOne.id in counts, false)
+
+    const exposed = JSON.stringify([full, gap, counts])
+    check('las cifras no incluyen nombres, teléfonos ni identificadores de personas', /Persona|5426570|persona_/.test(exposed) || ids.some(id => exposed.includes(id)), false)
+
+    check('anon no puede leer las cifras de un sorteo', await failsWith('permission denied', () =>
+      asRole('anon', () => q('SELECT giveaway_public_stats($1::uuid)', [g.id]))), 'ok')
+    check('anon no puede leer las cifras de la lista', await failsWith('permission denied', () =>
+      asRole('anon', () => q('SELECT giveaway_public_counts()'))), 'ok')
+    check('authenticated tampoco', await failsWith('permission denied', () =>
+      asRole('authenticated', () => q('SELECT giveaway_public_counts()'))), 'ok')
+    check('service_role sí puede', (await asRole('service_role', () => q('SELECT giveaway_public_counts() AS r')))[0].r[g.id].tickets, 6)
   }
 
   if (failures > 0) {
